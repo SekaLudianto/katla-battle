@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wordle Battle - Red vs Blue</title>
+    <title>Wordle Battle - Girls vs Boys</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -11,19 +11,30 @@
             theme: {
                 extend: {
                     colors: {
-                        'neon-red': '#ff3366',
-                        'neon-blue': '#00f2ff',
+                        'neon-cewek': '#e879f9', // Fuchsia-400 (Pengganti neon-red)
+                        'neon-cowok': '#00f2ff', // Tetap (diganti nama dari neon-blue)
+                        'neon-gold': '#fbbf24',
                         'game-bg': '#0f172a',
                         'tile-empty': '#334155',
-                        'tile-correct': '#22c55e',
-                        'tile-present': '#eab308',
-                        'tile-absent': '#94a3b8'
+                        // --- PERUBAHAN DI SINI ---
+                        // Warna 'Correct' (Benar) akan menggunakan warna neon tim
+                        'cewek-present': '#c026d3', // Fuchsia 600 (Untuk 'Present')
+                        'cowok-present': '#0891b2', // Cyan 600 (Untuk 'Present')
+                        'tile-absent': '#94a3b8',
+                        // --- BARU: Warna Standar Wordle ---
+                        'tile-correct': '#16a34a', // (Green 600) - STANDARD
+                        'tile-present': '#ca8a04' // (Yellow 600) - STANDARD
                     },
                     animation: {
                         'pop': 'pop 0.3s ease-in-out',
                         'flip': 'flip 0.6s ease-in-out',
                         'shake': 'shake 0.5s ease-in-out',
-                        'slide-in': 'slideIn 0.5s ease-out forwards'
+                        'slide-in': 'slideIn 0.5s ease-out forwards',
+                        'zoom-in': 'zoomIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                        'fade-out': 'fadeOut 0.5s ease-in-out forwards',
+                        'fire-pulse-cewek': 'fire-pulse-cewek-anim 1.5s infinite alternate', // Ganti nama
+                        'fire-pulse-cowok': 'fire-pulse-cowok-anim 1.5s infinite alternate', // Ganti nama
+                        'flash-deuce': 'flashDeuce 1s infinite' // NEW
                     },
                     keyframes: {
                         pop: {
@@ -36,14 +47,29 @@
                             '50%': { transform: 'rotateX(90deg)' },
                             '100%': { transform: 'rotateX(0deg)' }
                         },
-                        shake: {
-                            '0%, 100%': { transform: 'translateX(0)' },
-                            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-                            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' }
-                        },
                         slideIn: {
                             '0%': { opacity: '0', transform: 'translateY(-20px)', maxHeight: '0px', marginBottom: '0px' },
                             '100%': { opacity: '1', transform: 'translateY(0)', maxHeight: '100px', marginBottom: '0.5rem' }
+                        },
+                        zoomIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.5)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' }
+                        },
+                        fadeOut: {
+                            '0%': { opacity: '1' },
+                            '100%': { opacity: '0' }
+                        },
+                        'fire-pulse-cewek-anim': { // Ganti nama
+                            'from': { boxShadow: '0 0 10px 2px rgba(232, 121, 249, 0.6)' }, // Warna baru
+                            'to': { boxShadow: '0 0 20px 8px rgba(232, 121, 249, 0.9)' } // Warna baru
+                        },
+                        'fire-pulse-cowok-anim': { // Ganti nama
+                            'from': { boxShadow: '0 0 10px 2px rgba(0, 242, 255, 0.6)' },
+                            'to': { boxShadow: '0 0 20px 8px rgba(0, 242, 255, 0.9)' }
+                        },
+                        flashDeuce: {
+                            '0%, 100%': { opacity: '1', color: '#fbbf24' },
+                            '50%': { opacity: '0.5', color: '#fff' }
                         }
                     }
                 }
@@ -53,375 +79,1546 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
-        .font-gaming { family: 'Black Ops One', cursive; }
+        .font-gaming { font-family: 'Black Ops One', cursive; }
         .tile { transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.6s; }
         .flip { animation: flip 0.6s ease-in-out forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .mvp-gradient { background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(0, 0, 0, 0) 100%); }
 
-        /* Hide scrollbar for standard browsers */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        /* Streak Pulse Classes */
+        .fire-pulse-cewek { animation: fire-pulse-cewek-anim 1.5s infinite alternate; } /* Ganti nama */
+        .fire-pulse-cowok { animation: fire-pulse-cowok-anim 1.5s infinite alternate; } /* Ganti nama */
+        .deuce-active { animation: flash-deuce 1s infinite; }
+
     </style>
 </head>
-<body class="h-screen flex flex-col text-white overflow-hidden bg-game-bg">
+<body class="h-screen flex flex-col text-white overflow-hidden bg-game-bg relative">
 
-    <!-- HEADER: SCORES & STATUS -->
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" class="fixed top-24 left-0 right-0 z-50 flex flex-col items-center gap-2 pointer-events-none px-4"></div>
+
+    <!-- HEADER -->
     <header class="p-4 flex justify-between items-start bg-slate-900/80 border-b border-slate-800 shadow-lg z-10">
-        <!-- Red Score Area -->
         <div class="flex flex-col items-center w-1/4">
-            <h2 class="text-neon-red font-gaming text-3xl md:text-4xl drop-shadow-[0_0_15px_rgba(255,51,102,0.8)] tracking-wider">RED TEAM</h2>
-            <span id="score-red" class="text-5xl font-bold mt-1 drop-shadow-lg">0</span>
+            <h2 class="text-neon-cewek font-gaming text-3xl md:text-4xl drop-shadow-[0_0_15px_rgba(232,121,249,0.8)] tracking-wider text-center" data-i18n="RED_TEAM">RED TEAM</h2>
+            <span id="score-cewek" class="text-5xl font-bold mt-1 drop-shadow-lg">0</span>
         </div>
 
-        <!-- Center Status & Battle Bar -->
         <div class="flex flex-col items-center text-center w-2/4">
-            <h1 class="text-3xl md:text-5xl font-gaming tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-neon-red via-white to-neon-blue filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] mb-3">
+            <h1 class="text-2xl md:text-4xl font-gaming tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-neon-cewek via-white to-neon-cowok filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] mb-2">
                 WORD BATTLE
             </h1>
+
+            <!-- Round Indicator & Mode Info -->
+            <div class="flex items-center gap-2 mb-2">
+                <div id="round-display-container" class="px-3 py-1 bg-slate-800/80 rounded-full border border-slate-700 font-gaming text-neon-gold text-sm tracking-widest">
+                    <span id="round-label" data-i18n="ROUND">ROUND</span> <span id="current-round">1</span><span id="max-rounds-separator">/</span><span id="max-rounds-display">10</span>
+                </div>
+                <!-- Deuce Indicator -->
+                <div id="deuce-indicator" class="hidden px-3 py-1 bg-red-900/80 rounded-full border border-red-500 font-gaming text-white text-sm tracking-widest deuce-active">
+                    DEUCE
+                </div>
+                <!-- Mode Specific Indicator -->
+                <div id="mode-indicator" class="hidden px-4 py-1 bg-slate-800/80 rounded-full border border-slate-500 font-gaming text-white text-sm tracking-widest flex items-center justify-center min-w-[120px]">
+                    <!-- Will be filled by JS -->
+                </div>
+            </div>
             
             <!-- BATTLE BAR -->
-            <div class="w-full max-w-lg h-8 bg-slate-800 rounded-full overflow-hidden flex border-2 border-slate-700 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
-                <!-- Red part -->
-                <div id="bar-red" class="h-full bg-gradient-to-r from-red-900 via-neon-red to-neon-red transition-all duration-700 ease-in-out flex items-center justify-end pr-2" style="width: 50%">
-                     <div class="h-full w-full absolute top-0 left-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] opacity-50"></div>
-                </div>
-                <!-- Blue part -->
-                <div id="bar-blue" class="h-full bg-gradient-to-l from-blue-900 via-neon-blue to-neon-blue transition-all duration-700 ease-in-out flex items-center justify-start pl-2" style="width: 50%">
-                    <div class="h-full w-full absolute top-0 left-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] opacity-50"></div>
-                </div>
-                <!-- Center Marker -->
-                <div class="absolute left-1/2 top-0 bottom-0 w-1 bg-white z-10 -translate-x-1/2 shadow-[0_0_10px_white] mix-blend-overlay"></div>
-                <!-- VS Icon -->
-                 <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 border-2 border-slate-600 rounded-full w-8 h-8 flex items-center justify-center text-xs font-gaming text-slate-300 z-20 shadow-lg">
+            <div class="w-full max-w-lg h-6 md:h-8 bg-slate-800 rounded-full overflow-hidden flex border-2 border-slate-700 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
+                <div id="bar-cewek" class="h-full bg-gradient-to-r from-fuchsia-900 via-neon-cewek to-neon-cewek transition-all duration-700 ease-in-out" style="width: 50%"></div>
+                <div id="bar-cowok" class="h-full bg-gradient-to-l from-cyan-900 via-neon-cowok to-neon-cowok transition-all duration-700 ease-in-out" style="width: 50%"></div>
+                
+                <!-- Center Icon (VS or Winner Avatar) -->
+                 <div id="battle-bar-icon" class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 border-2 border-slate-600 rounded-full w-8 h-8 flex items-center justify-center text-xs font-gaming text-slate-300 z-20 shadow-lg transition-all duration-700 ease-in-out overflow-hidden" style="left: 50%;">
                     VS
                 </div>
             </div>
 
-            <div id="round-timer" class="text-lg text-slate-400 mt-3 font-medium">Waiting for players...</div>
-            <div id="connection-status" class="text-xs px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 mt-2 flex items-center animate-pulse">
-                <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                Connecting to TikFinity...
-            </div>
+            <div id="round-status-text" class="text-sm md:text-base text-slate-400 mt-2 font-medium" data-i18n="WAITING_SETUP">Waiting for setup...</div>
         </div>
 
-        <!-- Blue Score Area -->
         <div class="flex flex-col items-center w-1/4">
-            <h2 class="text-neon-blue font-gaming text-3xl md:text-4xl drop-shadow-[0_0_15px_rgba(0,242,255,0.8)] tracking-wider">BLUE TEAM</h2>
-            <span id="score-blue" class="text-5xl font-bold mt-1 drop-shadow-lg">0</span>
+            <h2 class="text-neon-cowok font-gaming text-3xl md:text-4xl drop-shadow-[0_0_15px_rgba(0,242,255,0.8)] tracking-wider text-center" data-i18n="BLUE_TEAM">BLUE TEAM</h2>
+            <span id="score-cowok" class="text-5xl font-bold mt-1 drop-shadow-lg">0</span>
         </div>
     </header>
 
     <!-- MAIN GAME AREA -->
-    <main class="flex-1 flex p-4 gap-4 md:gap-8 justify-center items-start overflow-hidden">
+    <!-- PERUBAHAN: p-0 dan gap-0 di mobile agar menyatu. md:p-2 md:gap-2 untuk desktop. -->
+    <main class="flex-1 flex flex-row p-0 gap-0 md:p-2 md:gap-2 justify-center items-start overflow-hidden relative">
         
-        <!-- RED BOARD CONTAINER -->
-        <div class="flex-1 max-w-md flex flex-col items-center h-full">
-            <div class="w-full p-2 md:p-3 bg-gradient-to-b from-red-950/50 to-transparent border-t-2 border-neon-red/50 rounded-xl mb-4 text-center flex-shrink-0">
-                <h3 class="text-neon-red font-bold text-sm md:text-base mb-1 opacity-80">LATEST ATTACK BY:</h3>
-                <div id="last-user-red" class="h-8 text-base md:text-lg text-white font-semibold truncate animate-pop drop-shadow-md">-</div>
-            </div>
-            <!-- The Grid (Scrollable, No Scrollbar) -->
-            <div id="board-red" class="w-full flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 bg-slate-900/80 rounded-2xl border-2 border-red-900/50 shadow-[0_0_40px_rgba(255,51,102,0.1)] backdrop-blur-sm flex flex-col">
-                <!-- Tiles generated by JS will be PREPENDED here -->
-            </div>
+        <!-- BACKGROUND DIVIDER (Mobile Only visual trick) -->
+        <div class="absolute inset-0 pointer-events-none md:hidden flex">
+            <div class="w-1/2 h-full border-r border-slate-700/50 bg-gradient-to-b from-fuchsia-950/10 to-transparent"></div>
+            <div class="w-1/2 h-full bg-gradient-to-b from-cyan-950/10 to-transparent"></div>
         </div>
 
-        <!-- BLUE BOARD CONTAINER -->
-        <div class="flex-1 max-w-md flex flex-col items-center h-full">
-            <div class="w-full p-2 md:p-3 bg-gradient-to-b from-blue-950/50 to-transparent border-t-2 border-neon-blue/50 rounded-xl mb-4 text-center flex-shrink-0">
-                <h3 class="text-neon-blue font-bold text-sm md:text-base mb-1 opacity-80">LATEST ATTACK BY:</h3>
-                <div id="last-user-blue" class="h-8 text-base md:text-lg text-white font-semibold truncate animate-pop drop-shadow-md">-</div>
+        <!-- RED BOARD (LEFT) -->
+        <!-- PERUBAHAN: Hapus rounded dan margin di mobile. Tambahkan border kanan. -->
+        <div class="flex-1 max-w-md flex flex-col items-center h-full md:rounded-2xl md:bg-slate-900/50 md:border md:border-slate-800 z-10">
+            <!-- Header Area (Compact on Mobile) -->
+            <div class="w-full p-1 md:p-2 bg-gradient-to-b from-fuchsia-950/80 to-transparent md:rounded-t-xl text-center flex-shrink-0 border-b border-white/5 md:border-none">
+                <!-- PERINTAH BARU DI SINI -->
+                <div class="font-bold text-neon-cewek text-[10px] md:text-base mb-1" data-i18n="JOIN_RED_CMD">Type <strong>/girl</strong> to join</div>
+                
+                <!-- Latest Attack (Super Compact) -->
+                <div class="flex items-center justify-center gap-1 md:gap-2 opacity-90">
+                    <span class="text-[8px] md:text-xs text-neon-cewek tracking-widest hidden sm:inline" data-i18n="LATEST_ATTACK">LATEST:</span>
+                    <div id="last-user-cewek" class="flex items-center justify-center gap-2 animate-pop text-white px-2 py-0.5 md:px-4 md:py-1 rounded-full bg-fuchsia-950/50 border border-fuchsia-500/20 min-h-[2rem] md:min-h-[3rem]">
+                        <span class="opacity-50 text-xs">-</span>
+                    </div>
+                </div>
             </div>
-            <!-- The Grid (Scrollable, No Scrollbar) -->
-            <div id="board-blue" class="w-full flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 bg-slate-900/80 rounded-2xl border-2 border-blue-900/50 shadow-[0_0_40px_rgba(0,242,255,0.1)] backdrop-blur-sm flex flex-col">
-                <!-- Tiles generated by JS will be PREPENDED here -->
-            </div>
+
+            <!-- Board Area -->
+            <!-- PERUBAHAN: Padding minimal (p-0.5) di mobile. -->
+            <div id="board-cewek" class="w-full flex-1 overflow-y-auto no-scrollbar p-0.5 md:p-2 bg-transparent md:bg-slate-900/80 md:rounded-b-2xl md:shadow-[0_0_40px_rgba(232,121,249,0.1)] flex flex-col border-r border-slate-800/50 md:border-none"></div>
         </div>
 
+        <!-- BLUE BOARD (RIGHT) -->
+        <div class="flex-1 max-w-md flex flex-col items-center h-full md:rounded-2xl md:bg-slate-900/50 md:border md:border-slate-800 z-10">
+            <!-- Header Area (Compact on Mobile) -->
+            <div class="w-full p-1 md:p-2 bg-gradient-to-b from-cyan-950/80 to-transparent md:rounded-t-xl text-center flex-shrink-0 border-b border-white/5 md:border-none">
+                <!-- PERINTAH BARU DI SINI -->
+                <div class="font-bold text-neon-cowok text-[10px] md:text-base mb-1" data-i18n="JOIN_BLUE_CMD">Type <strong>/boy</strong> to join</div>
+                
+                <!-- Latest Attack (Super Compact) -->
+                <div class="flex items-center justify-center gap-1 md:gap-2 opacity-90">
+                    <span class="text-[8px] md:text-xs text-neon-cowok tracking-widest hidden sm:inline" data-i18n="LATEST_ATTACK">LATEST:</span>
+                    <div id="last-user-cowok" class="flex items-center justify-center gap-2 animate-pop text-white px-2 py-0.5 md:px-4 md:py-1 rounded-full bg-cyan-950/50 border border-cyan-500/20 min-h-[2rem] md:min-h-[3rem]">
+                        <span class="opacity-50 text-xs">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Board Area -->
+             <!-- PERUBAHAN: Padding minimal (p-0.5) di mobile. -->
+            <div id="board-cowok" class="w-full flex-1 overflow-y-auto no-scrollbar p-0.5 md:p-2 bg-transparent md:bg-slate-900/80 md:rounded-b-2xl md:shadow-[0_0_40px_rgba(0,242,255,0.1)] flex flex-col"></div>
+        </div>
     </main>
 
-    <!-- FOOTER / MANUAL INPUT FOR TESTING -->
-    <footer class="p-3 bg-slate-950/90 backdrop-blur text-slate-400 text-sm flex justify-between items-center border-t border-slate-900 z-10">
-        <div class="font-semibold">
-            Total Recruits: <span id="player-count" class="text-white text-base ml-1">0</span> 
-            <span class="ml-3">( <span class="text-neon-red">R: <span id="count-red">0</span></span> | 
-             <span class="text-neon-blue">B: <span id="count-blue">0</span></span> )</span>
+    <!-- FOOTER -->
+    <footer class="p-2 bg-slate-950/90 backdrop-blur text-slate-400 text-xs flex justify-between items-center border-t border-slate-900 z-10">
+        <div class="font-semibold flex items-center">
+            <div id="connection-status" class="w-3 h-3 bg-slate-500 rounded-full mr-2"></div>
+            <span data-i18n="RECRUITS">Recruits</span>: <span id="player-count" class="text-white ml-1">0</span> 
+            <span class="ml-2">(<span class="text-neon-cewek">C:<span id="count-cewek">0</span></span>|<span class="text-neon-cowok">B:<span id="count-cowok">0</span></span>)</span>
         </div>
-        <!-- Manual Testing Input -->
-        <div class="flex gap-2 items-center bg-slate-900 p-1.5 rounded-lg border border-slate-800/50">
-            <span class="text-[10px] uppercase font-bold tracking-wider opacity-50 hidden md:block">Admin Console:</span>
-            <input type="text" id="manual-guess" placeholder="5-LETTER WORD" maxlength="5" class="bg-slate-800 text-white px-3 py-1 rounded-md uppercase w-36 text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-white/20 border border-slate-700">
-            <button onclick="manualSubmit('red')" class="bg-gradient-to-br from-red-600 to-red-800 hover:from-neon-red hover:to-red-600 text-white px-4 py-1 rounded-md text-xs font-bold transition-all shadow-lg shadow-red-900/50 active:scale-95">RED</button>
-            <button onclick="manualSubmit('blue')" class="bg-gradient-to-br from-blue-600 to-blue-800 hover:from-neon-blue hover:to-blue-600 text-white px-4 py-1 rounded-md text-xs font-bold transition-all shadow-lg shadow-blue-900/50 active:scale-95">BLUE</button>
+        <div class="flex gap-4 items-center">
+             <!-- Settings Button -->
+             <button onclick="toggleSettings()" class="opacity-50 hover:opacity-100 transition-opacity p-2 bg-slate-800 rounded-full hover:bg-slate-700" title="Admin Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                </svg>
+             </button>
+             <!-- Manual Test Inputs -->
+             <div class="flex gap-2 opacity-30 hover:opacity-100 transition-opacity">
+                 <input type="text" id="manual-guess" placeholder="TEST" maxlength="5" class="bg-slate-800 w-16 text-center uppercase rounded">
+                 <button onclick="manualSubmit('cewek')" class="bg-fuchsia-800 px-2 rounded">C</button>
+                 <button onclick="manualSubmit('cowok')" class="bg-cyan-800 px-2 rounded">B</button>
+             </div>
         </div>
     </footer>
 
-    <!-- WINNER OVERLAY -->
-    <div id="winner-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center">
-        <h2 id="winner-text" class="font-gaming text-7xl md:text-9xl mb-8 animate-pop drop-shadow-[0_0_50px_rgba(255,255,255,0.3)]">RED WINS!</h2>
-        <div class="flex flex-col items-center bg-slate-900/50 p-8 rounded-2xl border border-white/10">
-            <div class="text-3xl text-slate-400 mb-2 uppercase tracking-widest">The word was</div>
-            <div id="revealed-word" class="font-gaming text-6xl text-white tracking-[0.2em] drop-shadow-lg mb-6">HELLO</div>
-            <div class="text-2xl text-white flex items-center bg-slate-800/80 px-6 py-3 rounded-full">
-                Next battle in <span id="countdown" class="font-gaming text-neon-yellow text-4xl mx-3 w-12 text-center">5</span>s
+    <!-- SETTINGS LOBBY OVERLAY -->
+    <div id="settings-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center overflow-y-auto p-4">
+        <div class="bg-slate-900 border-2 border-neon-cowok p-6 rounded-2xl shadow-[0_0_50px_rgba(0,242,255,0.2)] max-w-4xl w-full flex flex-col md:flex-row gap-6 max-h-[90vh]">
+            
+            <!-- LEFT COLUMN: Game Config -->
+            <div class="flex-1 flex flex-col">
+                <h2 class="font-gaming text-2xl text-white mb-4 tracking-widest drop-shadow-lg border-b border-slate-700 pb-2" data-i18n="MATCH_CONFIG">MATCH CONFIG</h2>
+                
+                <!-- Language Setting -->
+                 <div class="mb-4">
+                    <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" data-i18n="LANGUAGE">LANGUAGE</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="selectLanguage('EN')" id="lang-btn-en" class="lang-btn bg-neon-cowok/20 border-2 border-neon-cowok text-white py-2 rounded font-bold text-xs transition-all">ENGLISH</button>
+                        <button onclick="selectLanguage('ID')" id="lang-btn-id" class="lang-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all">INDONESIA</button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" id="label-rounds-or-score" data-i18n="TOTAL_ROUNDS">TOTAL ROUNDS</label>
+                    <input type="number" id="setting-rounds" min="1" max="99" value="10" class="w-full bg-slate-800 text-white font-gaming text-lg px-3 py-2 rounded border border-slate-700 focus:border-neon-cowok focus:outline-none">
+                </div>
+                
+                <div class="mb-4">
+                     <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" data-i18n="GAME_MODE">GAME MODE</label>
+                     <div class="grid grid-cols-2 gap-2">
+                         <button onclick="selectMode('CLASSIC')" id="mode-btn-classic" class="mode-btn bg-neon-cowok/20 border-2 border-neon-cowok text-white py-2 rounded font-bold text-xs transition-all">CLASSIC</button>
+                         <button onclick="selectMode('TIME_RUSH')" id="mode-btn-timerush" class="mode-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all">TIME RUSH</button>
+                         <button onclick="selectMode('RALLY_POINT')" id="mode-btn-rallypoint" class="mode-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all" data-i18n="MODE_RALLY">RALLY POINT</button>
+                         <button onclick="selectMode('AI_MODE')" id="mode-btn-aimode" class="mode-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all">AI GEN</button>
+                     </div>
+                     <!-- Hint Text -->
+                     <div id="mode-description" class="text-xs text-slate-500 mt-2 h-8 leading-tight">Classic mode: Unlimited guesses until one team wins.</div>
+                </div>
+
+                <!-- NEW: Tile Color Mode -->
+                <div class="mb-4">
+                     <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" data-i18n="TILE_COLOR_MODE">TILE COLOR MODE</label>
+                     <div class="grid grid-cols-2 gap-2">
+                         <button onclick="selectTileColorMode('STANDARD')" id="tile-color-btn-standard" class="tile-color-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all" data-i18n="MODE_STANDARD">STANDARD (GREEN/YELLOW)</button>
+                         <button onclick="selectTileColorMode('TEAM')" id="tile-color-btn-team" class="tile-color-btn bg-neon-cowok/20 border-2 border-neon-cowok text-white py-2 rounded font-bold text-xs transition-all" data-i18n="MODE_TEAM">TEAM (PINK/CYAN)</button>
+                     </div>
+                </div>
+
+                <!-- NEW: Next Round Control -->
+                <div class="mb-4">
+                     <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" data-i18n="NEXT_ROUND_CTRL">NEXT ROUND CONTROL</label>
+                     <div class="grid grid-cols-2 gap-2">
+                         <button onclick="selectNextRoundMode('MANUAL')" id="next-round-btn-manual" class="next-round-btn bg-neon-cowok/20 border-2 border-neon-cowok text-white py-2 rounded font-bold text-xs transition-all" data-i18n="CTRL_MANUAL">MANUAL</button>
+                         <button onclick="selectNextRoundMode('AUTO')" id="next-round-btn-auto" class="next-round-btn bg-slate-800 border-2 border-slate-700 text-slate-400 py-2 rounded font-bold text-xs transition-all" data-i18n="CTRL_AUTO">AUTO (15s)</button>
+                     </div>
+                </div>
+
+                <!-- Team Name Settings -->
+                <div class="mb-6">
+                    <label class="block text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider" data-i18n="TEAM_NAMES">TEAM NAMES</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="setting-team-name-cewek" value="RED TEAM" class="w-full bg-slate-800 text-neon-cewek font-gaming text-lg px-3 py-2 rounded border border-slate-700 focus:border-neon-cewek focus:outline-none">
+                        <input type="text" id="setting-team-name-cowok" value="BLUE TEAM" class="w-full bg-slate-800 text-neon-cowok font-gaming text-lg px-3 py-2 rounded border border-slate-700 focus:border-neon-cowok focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="mt-auto flex gap-2">
+                     <button onclick="toggleSettings()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all" data-i18n="CLOSE">CLOSE</button>
+                     <button onclick="applySettingsAndStart()" class="flex-[2] bg-gradient-to-r from-neon-cowok to-blue-600 hover:from-white hover:to-neon-cowok text-slate-900 font-gaming text-xl py-3 rounded-xl transition-all shadow-lg" data-i18n="APPLY_RESTART">APPLY & RESTART</button>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Player Management -->
+            <div class="flex-1 flex flex-col border-t md:border-t-0 md:border-l border-slate-700 pt-6 md:pt-0 md:pl-6">
+                <h2 class="font-gaming text-2xl text-white mb-4 tracking-widest drop-shadow-lg border-b border-slate-700 pb-2" data-i18n="PLAYER_MGMT">PLAYER MANAGEMENT</h2>
+                
+                <!-- Search Bar -->
+                <div class="mb-2">
+                    <input type="text" id="player-search-input" oninput="filterPlayerList()" 
+                           class="w-full bg-slate-800 text-white px-3 py-2 rounded border border-slate-700 focus:border-neon-cowok focus:outline-none text-sm"
+                           data-i18n-placeholder="SEARCH_PLAYER" placeholder="Search by name...">
+                </div>
+
+                <div class="flex justify-between text-xs text-slate-400 mb-2 px-2">
+                    <span data-i18n="PLAYER">PLAYER</span>
+                    <span data-i18n="SWITCH_TEAM">SWITCH TEAM</span>
+                </div>
+                <div id="player-list" class="flex-1 overflow-y-auto pr-2 space-y-2 min-h-[200px] max-h-[400px] bg-slate-950/50 p-2 rounded-lg border border-slate-800">
+                    <!-- Player rows will be generated here -->
+                    <div class="text-slate-500 text-center italic text-sm py-4" data-i18n="NO_PLAYERS">No players have joined yet.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ROUND WINNER OVERLAY (WITH STATS) -->
+    <div id="round-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-40 hidden flex flex-col items-center justify-center">
+        <!-- WINNER TITLE -->
+        <h2 id="round-winner-text" class="font-gaming text-5xl md:text-7xl mb-2 animate-pop">RED WINS!</h2>
+        
+        <!-- NEW: LIVE COMMENTARY (Rally Mode Only) -->
+        <div id="live-commentary-display" class="hidden mb-6 px-4 py-2 bg-gradient-to-r from-transparent via-slate-800 to-transparent text-neon-gold font-bold italic tracking-wider text-center text-sm md:text-lg border-y border-slate-700 w-full max-w-2xl animate-slide-in">
+            <!-- Text inserted via JS -->
+        </div>
+        
+        <!-- MAIN CONTENT CARD -->
+        <div class="flex flex-col items-center bg-slate-900/80 p-6 rounded-3xl border border-white/10 min-w-[320px] max-w-lg w-full mx-4 shadow-2xl">
+            
+            <!-- WORD REVEAL & TRANSLATION -->
+            <div class="text-center mb-6 w-full border-b border-white/10 pb-4">
+                <div class="text-slate-400 text-xs uppercase tracking-[0.3em] mb-1" data-i18n="TARGET_WORD">TARGET WORD</div>
+                <div id="revealed-word" class="font-gaming text-5xl text-white tracking-[0.2em] drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">HELLO</div>
+                <div id="revealed-word-translation" class="text-lg text-neon-blue font-semibold tracking-wider capitalize italic mt-2 max-w-md text-center leading-tight">(...)</div>
+            </div>
+
+            <!-- STATS ROW -->
+            <div class="flex flex-row gap-4 w-full mb-6 justify-center">
+                <!-- ROUND MVP -->
+                <div id="solved-by-container" class="flex-1 bg-slate-800/50 p-3 rounded-2xl border border-neon-gold/30 flex flex-col items-center">
+                    <div class="text-neon-gold text-[10px] font-bold mb-2 tracking-widest" data-i18n="ROUND_MVP">ROUND MVP</div>
+                    <img id="winner-avatar" src="" alt="Winner" class="w-14 h-14 rounded-full border-2 border-neon-gold object-cover mb-1 shadow-[0_0_10px_rgba(251,191,36,0.3)]">
+                    <span id="winner-name" class="text-white font-bold text-sm truncate max-w-[120px]">PlayerName</span>
+                </div>
+
+                <!-- TEAM STATS -->
+                <div class="flex-1 bg-slate-800/50 p-3 rounded-2xl border border-white/10 flex flex-col items-center">
+                    <div class="text-slate-300 text-[10px] font-bold mb-3 tracking-widest" data-i18n="TEAM_STATS">TEAM STATS</div>
+                    <div class="flex gap-4 items-center justify-center w-full h-full pb-2">
+                        <div class="text-center">
+                            <div id="round-stat-red" class="text-neon-cewek font-gaming text-3xl drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]">0</div>
+                            <div class="text-[8px] text-neon-cewek/70 tracking-wider" data-i18n="RED_ATTACKS">RED ATTACKS</div>
+                        </div>
+                        <div class="h-8 w-px bg-slate-700"></div>
+                        <div class="text-center">
+                            <div id="round-stat-blue" class="text-neon-cowok font-gaming text-3xl drop-shadow-[0_0_5px_rgba(0,242,255,0.5)]">0</div>
+                            <div class="text-[8px] text-neon-cowok/70 tracking-wider" data-i18n="BLUE_ATTACKS">BLUE ATTACKS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ADMIN/CONTROL BUTTONS -->
+            <div class="flex gap-4">
+                <button id="kbbi-link-btn" onclick="openKBBILink()" class="hidden bg-blue-700 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all">BUKA KBBI</button>
+                <button id="next-round-btn" onclick="startNextRoundTransition()" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 text-white font-gaming text-lg py-3 px-6 rounded-xl transition-all shadow-lg">
+                    NEXT ROUND (<span id="countdown">5</span>)
+                </button>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- GAME CONFIG & STATE ---
-        const WORD_LENGTH = 5;
-        // REMOVED MAX_GUESSES limit for infinite scrolling battle feel.
-        // Can add it back if you want a strictly limited round.
-        const MAX_GUESSES = 999; 
-        const WORD_LIST = ["REACT", "APPLE", "TRAIN", "HOUSE", "PIZZA", "RIVER", "GHOST", "BASIC", "OUTER", "NEVER", "WORLD", "HELLO", "VIDEO", "LIGHT", "SOUND", "WATER", "START", "FORCE", "POWER", "NIGHT", "LAUGH", "TIGER", "EARTH", "SPACE", "BRAIN", "SMILE", "BEACH", "DREAM", "FOCUS", "GAMER", "TWITCH", "TIKTOK", "SUPER", "ULTRA", "FIGHT", "MAGIC", "NINJA", "ROBOT", "ALIEN", "LEVEL", "SHARK", "EAGLE", "LION", "WOLF", "BEAR", "SNAKE", "COBRA", "VIPER", "FLASH", "STORM", "BLAZE", "FROST", "SHADE", "STEEL", "IRON", "METAL", "SWORD", "ARROW", "ARMOR", "SHIELD"];
+    <!-- MVP OVERLAY (MATCH END) -->
+    <!-- PERBAIKAN: overflow-hidden diganti overflow-y-auto agar bisa di-scroll jika layar sangat pendek -->
+    <div id="mvp-overlay" class="fixed inset-0 bg-black/95 backdrop-blur-lg z-50 hidden flex flex-col items-center justify-start md:justify-center overflow-y-auto py-8">
         
+        <!-- Banner Result -->
+        <div id="match-result-banner" class="w-full py-2 md:py-4 bg-gradient-to-r from-transparent via-neon-cewek/50 to-transparent text-center mb-4 md:mb-8 flex-shrink-0">
+             <!-- Font size diperkecil di mobile (text-4xl) membesar di desktop (md:text-7xl) -->
+             <h1 id="match-winner-text" class="font-gaming text-4xl md:text-7xl text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] animate-pop">RED VICTORY</h1>
+        </div>
+
+        <div class="relative animate-zoom-in flex-shrink-0 w-full max-w-2xl px-4">
+            <div class="absolute -inset-20 bg-gradient-to-r from-neon-gold/0 via-neon-gold/30 to-neon-gold/0 blur-3xl opacity-50 animate-pulse"></div>
+            
+            <!-- MVP CARD -->
+            <!-- Padding dikurangi drastis di mobile (p-6) -->
+            <div class="mvp-gradient relative bg-slate-900/80 border-2 md:border-4 border-neon-gold p-6 md:p-12 rounded-[2rem] flex flex-col items-center shadow-[0_0_50px_rgba(251,191,36,0.3)] w-full">
+                
+                <!-- BADGE: Diperkecil dan posisi disesuaikan -->
+                <div class="absolute -top-5 md:-top-10 bg-gradient-to-b from-neon-gold to-orange-600 text-white font-gaming text-xl md:text-5xl px-6 py-1 md:py-2 rounded-full border-2 md:border-4 border-slate-900 shadow-xl tracking-widest">MATCH MVP</div>
+                
+                <!-- IMAGE: Diperkecil di mobile (w-24 h-24) -->
+                <div class="mt-4 md:mt-8 mb-2 md:mb-6 relative">
+                     <div class="absolute inset-0 bg-neon-gold blur-2xl opacity-50 rounded-full"></div>
+                     <img id="mvp-image" src="" alt="MVP" class="w-24 h-24 md:w-48 md:h-48 rounded-full border-2 md:border-4 border-neon-gold object-cover relative z-10 shadow-2xl">
+                     <div class="absolute bottom-0 right-0 bg-slate-900 border-2 border-neon-gold rounded-full p-1 md:p-2 z-20">
+                         <span id="mvp-team-badge" class="block w-4 h-4 md:w-6 md:h-6 rounded-full bg-neon-cewek"></span>
+                     </div>
+                </div>
+                
+                <!-- NAME -->
+                <h2 id="mvp-name" class="font-gaming text-2xl md:text-5xl text-white mb-4 md:mb-6 tracking-wider drop-shadow-lg text-center break-all line-clamp-1">PLAYER NAME</h2>
+                
+                <!-- STATS GRID -->
+                <div class="grid grid-cols-2 gap-2 md:gap-4 w-full">
+                    <div class="bg-slate-800/50 p-2 md:p-4 rounded-xl border border-neon-gold/30 flex flex-col items-center">
+                        <!-- Angka stat diperkecil (text-3xl) -->
+                        <span class="text-neon-gold font-gaming text-3xl md:text-5xl" id="mvp-kills">0</span>
+                        <span class="text-slate-400 text-[10px] md:text-sm uppercase tracking-widest" data-i18n="WORDS_SOLVED">WORDS SOLVED</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-2 md:p-4 rounded-xl border border-white/10 flex flex-col items-center">
+                         <span class="text-white font-gaming text-3xl md:text-5xl" id="mvp-assists">0</span>
+                         <span class="text-slate-400 text-[10px] md:text-sm uppercase tracking-widest" data-i18n="TOTAL_GUESSES">TOTAL GUESSES</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TOP PLAYERS LIST -->
+        <div class="mt-4 md:mt-8 text-center animate-zoom-in w-full px-4" style="animation-delay: 0.2s;">
+            <h3 class="font-gaming text-lg md:text-2xl text-neon-gold tracking-wider" data-i18n="TOP_PLAYERS">TOP PLAYERS</h3>
+            <!-- Max height dikurangi di mobile (max-h-32) agar tidak tertutup -->
+            <div id="top-players-list" class="mt-2 md:mt-4 bg-slate-900/50 border border-slate-700 rounded-lg p-2 max-w-lg w-full max-h-32 md:max-h-48 overflow-y-auto no-scrollbar mx-auto text-xs md:text-base">
+                <!-- Player rows will be generated here -->
+                <div class="text-slate-500 p-4" data-i18n="NO_PLAYERS">No players.</div>
+            </div>
+        </div>
+
+        <div class="mt-4 md:mt-8 text-slate-500 animate-pulse text-xs md:text-base pb-8"><span data-i18n="STARTING_NEW_MATCH">Starting new match in</span> <span id="match-countdown">15</span>s...</div>
+    </div>
+    
+    <!-- KBBI IFrame Modal REMOVED -->
+
+    <script>
+        // --- I18N & CONFIG ---
+        const TRANSLATIONS = {
+            EN: {
+                RED_TEAM: "GIRLS TEAM", BLUE_TEAM: "BOYS TEAM", ROUND: "ROUND", WAITING_SETUP: "Waiting for setup...",
+                LATEST_ATTACK: "LATEST ATTACK BY:", RECRUITS: "Recruits", MATCH_CONFIG: "MATCH CONFIG",
+                LANGUAGE: "LANGUAGE", TOTAL_ROUNDS: "TOTAL ROUNDS", GAME_MODE: "GAME MODE", CLOSE: "CLOSE",
+                APPLY_RESTART: "APPLY & RESTART", PLAYER_MGMT: "PLAYER MANAGEMENT", PLAYER: "PLAYER",
+                SWITCH_TEAM: "SWITCH TEAM", NO_PLAYERS: "No players have joined yet.", NO_PLAYERS_FOUND: "No players found.",
+                TARGET_WORD: "TARGET WORD", ROUND_MVP: "ROUND MVP", TEAM_STATS: "TEAM STATS",
+                RED_ATTACKS: "GIRLS ATTACKS", BLUE_ATTACKS: "BOYS ATTACKS", NEXT_ROUND_IN: "Next round in",
+                WORDS_SOLVED: "WORDS SOLVED", TOTAL_GUESSES: "TOTAL GUESSES", STARTING_NEW_MATCH: "Starting new match in",
+                DEPLOY_WORDS: "DEPLOY YOUR WORDS!", LOADING_DICT: "Loading Dictionary...",
+                WINS_MESSAGE: "{0} WINS!", 
+                VICTORY_MESSAGE: "{0} VICTORY", // <-- Typo fixed
+                STALEMATE: "STALEMATE!", OUT_OF_AMMO: "OUT OF AMMO!", TIMES_UP: "TIME'S UP!",
+                MATCH_DRAW: "MATCH DRAW",
+                TEAM_NAMES: "TEAM NAMES",
+                TOP_PLAYERS: "TOP PLAYERS (WINNING TEAM)", // New
+                SOLVED_ABBR: "SOLVED", // New
+                MVP_BADGE: "MVP", // New
+                MODE_DESC_CLASSIC: "Classic mode: Unlimited guesses until one team wins.",
+                MODE_DESC_TIMERUSH: "Time Rush: Each round lasts {0} seconds.",
+                MODE_DESC_LIMITED: "Limited: Each team has only {0} guesses per round.",
+                MODE_DESC_AIMODE: "AI Mode: The AI generates a new word each round.", 
+                MODE_DESC_RALLY: "Rally Point: First to reach target score wins. Win by 2 points on deuce.", // NEW
+                TOAST_UNKNOWN_WORD: "{0}: Word \"{1}\" unknown!",
+                TOAST_CEWEK_OUT: "{0}: {1} is out of guesses!", // Ganti nama
+                TOAST_COWOK_OUT: "{0}: {1} is out of guesses!", // Ganti nama
+                TOAST_WELCOME: "Welcome {0}! You joined {1}",
+                TOAST_ADMIN_MOVED: "Admin moved {0} to {1}",
+                TOAST_MUST_JOIN: "{0}, your guess \"{1}\" wasn't counted! Type /girl or /boy to join a team.", // <-- BARU
+                JOIN_RED_CMD: "Type <strong>/girl</strong> to join", // <-- NEW
+                JOIN_BLUE_CMD: "Type <strong>/boy</strong> to join", // <-- NEW
+                TRANSLATING: "(Translating...)",
+                TEAM_RED_HTML: '<span class="text-neon-cewek font-bold">GIRLS TEAM</span>',
+                TEAM_BLUE_HTML: '<span class="text-neon-cowok font-bold">BOYS TEAM</span>',
+                KBBI_TITLE: "Indonesian Dictionary (KBBI)",
+                KBBI_OPEN: "Open KBBI",
+                NEXT_ROUND_BTN: "NEXT ROUND",
+                SEARCH_PLAYER: "Search by name...",
+                GENERATING_WORD_AI: "AI is generating a new word...", // NEW
+                // --- NEW ---
+                NEXT_ROUND_CTRL: "NEXT ROUND CONTROL",
+                CTRL_MANUAL: "MANUAL",
+                CTRL_AUTO: "AUTO (15s)",
+                // --- BARU ---
+                TILE_COLOR_MODE: "TILE COLOR MODE",
+                MODE_STANDARD: "STANDARD (GREEN/YELLOW)",
+                MODE_TEAM: "TEAM (PINK/CYAN)",
+                MODE_RALLY: "RALLY POINT",
+                TARGET_SCORE: "TARGET SCORE"
+            },
+            ID: {
+                RED_TEAM: "TIM<br>CEWEK", BLUE_TEAM: "TIM<br>COWOK", ROUND: "RONDE", WAITING_SETUP: "Menunggu pengaturan...",
+                LATEST_ATTACK: "SERANGAN TERAKHIR:", RECRUITS: "Perekrutan", MATCH_CONFIG: "KONFIGURASI MATCH",
+                LANGUAGE: "BAHASA", TOTAL_ROUNDS: "TOTAL RONDE", GAME_MODE: "MODE PERMAINAN", CLOSE: "TUTUP",
+                APPLY_RESTART: "TERAPKAN & ULANG", PLAYER_MGMT: "MANAJEMEN PEMAIN", PLAYER: "PEMAIN",
+                SWITCH_TEAM: "PINDAH TIM", NO_PLAYERS: "Belum ada pemain yang bergabung.", NO_PLAYERS_FOUND: "Pemain tidak ditemukan.",
+                TARGET_WORD: "KATA TARGET", ROUND_MVP: "MVP RONDE", TEAM_STATS: "STATISTIK TIM",
+                RED_ATTACKS: "SERANGAN CEWEK", BLUE_ATTACKS: "SERANGAN COWOK", NEXT_ROUND_IN: "Ronde berikutnya dalam",
+                WORDS_SOLVED: "KATA TERTEBAK", TOTAL_TEBAKAN: "TOTAL TEBAKAN", STARTING_NEW_MATCH: "Match baru dimulai dalam",
+                DEPLOY_WORDS: "Kirimkan KATA KALIAN!", LOADING_DICT: "Memuat Kamus...",
+                WINS_MESSAGE: "{0} MENANG!", 
+                VICTORY_MESSAGE: "{0} KEMENANGAN", 
+                STALEMATE: "SERI!", OUT_OF_AMMO: "KEHABISAN PELURU!", TIMES_UP: "WAKTU HABIS!",
+                MATCH_DRAW: "MATCH SERI",
+                TEAM_NAMES: "NAMA TIM",
+                TOP_PLAYERS: "PEMAIN TERATAS (TIM PEMENANG)", // New
+                SOLVED_ABBR: "TERTEBAK", // New
+                MVP_BADGE: "MVP", // New
+                MODE_DESC_CLASSIC: "Mode Klasik: Tebakan tak terbatas sampai ada pemenang.",
+                MODE_DESC_TIMERUSH: "Time Rush: Setiap ronde berlangsung {0} detik.",
+                MODE_DESC_LIMITED: "Terbatas: Setiap tim only punya {0} tebakan per ronde.",
+                MODE_DESC_AIMODE: "Mode AI: AI akan membuat kata baru setiap ronde.", 
+                MODE_DESC_RALLY: "Rally Point: Siapa cepat dapat skor target menang. Deuce jika seri.", // NEW
+                TOAST_UNKNOWN_WORD: "{0}: Kata \"{1}\" tidak dikenal!",
+                TOAST_CEWEK_OUT: "{0}: {1} kehabisan tebakan!", // Ganti nama
+                TOAST_COWOK_OUT: "{0}: {1} kehabisan tebakan!", // Ganti nama
+                TOAST_WELCOME: "Selamat datang {0}! Kamu masuk {1}",
+                TOAST_ADMIN_MOVED: "Admin memindahkan {0} ke {1}",
+                TOAST_MUST_JOIN: "{0}, tebakanmu \"{1}\" tidak dihitung! Ketik /cewek atau /cowok untuk bergabung.", // <-- BARU
+                JOIN_RED_CMD: "Ketik <strong>/cewek</strong> untuk bergabung", // <-- NEW
+                JOIN_BLUE_CMD: "Ketik <strong>/cowok</strong> untuk bergabung", // <-- NEW
+                TRANSLATING: "(Memuat definisi...)",
+                TEAM_RED_HTML: '<span class="text-neon-cewek font-bold">TIM CEWEK</span>',
+                TEAM_BLUE_HTML: '<span class="text-neon-cowok font-bold">TIM COWOK</span>',
+                KBBI_TITLE: "KBBI (Kamus Besar Bahasa Indonesia)",
+                KBBI_OPEN: "BUKA KBBI",
+                NEXT_ROUND_BTN: "RONDE BERIKUTNYA",
+                SEARCH_PLAYER: "Cari berdasarkan nama...",
+                GENERATING_WORD_AI: "AI sedang membuat kata baru...", // NEW
+                // --- NEW ---
+                NEXT_ROUND_CTRL: "KONTROL RONDE",
+                CTRL_MANUAL: "MANUAL",
+                CTRL_AUTO: "OTOMATIS (15s)",
+                // --- BARU ---
+                TILE_COLOR_MODE: "MODE WARNA TILE",
+                MODE_STANDARD: "STANDAR (HIJAU/KUNING)",
+                MODE_TEAM: "TIM (PINK/CYAN)",
+                MODE_RALLY: "RALLY POINT",
+                TARGET_SCORE: "TARGET SKOR"
+            }
+        };
+
+        let SETTINGS = {
+            MAX_ROUNDS: 10, MODE: 'CLASSIC', TIME_LIMIT: 60, INPUT_LIMIT: 10, LANGUAGE: 'EN',
+            TEAM_NAME_RED_HTML: "GIRLS TEAM", TEAM_NAME_RED_PLAIN: "GIRLS TEAM", 
+            TEAM_NAME_BLUE_HTML: "BOYS TEAM", TEAM_NAME_BLUE_PLAIN: "BOYS TEAM",
+            NEXT_ROUND_MODE: 'MANUAL', // 'MANUAL' (default) or 'AUTO'
+            TILE_COLOR_MODE: 'TEAM' // 'TEAM' or 'STANDARD'
+        };
+        let WORD_LIST = []; let WORD_SET = new Set();
+        const URLS = {
+            EN: 'https://raw.githubusercontent.com/SekaLudianto/katla-battle/refs/heads/main/wordle_words.json',
+            ID: 'https://raw.githubusercontent.com/SekaLudianto/kosakata/refs/heads/main/5huruf.json'
+        };
+
+        // --- NEW: LIVE COMMENTARY DATABASE ---
+        // {0} akan diganti dengan NAMA PEMAIN (Nickname)
+        const COMMENTARY = {
+            ID: {
+                cewek: [
+                    "JEBRETTT! {0} menyumbang poin cantik!",
+                    "Aduh aduh aduh! Srikandi {0} mengamuk, Bung!",
+                    "Jangan remehkan {0}! The power of Emak-emak!",
+                    "Smash tajam dari {0} merobek pertahanan cowok!",
+                    "Cantik, pintar, mematikan! {0} mencetak skor!",
+                    "{0} membuat laki-laki tidak berkutik! Skor Cewek!",
+                    "Ratu drama? Bukan! {0} adalah Ratu Kemenangan!",
+                    "Ahayyy! Serangan balik {0} manis sekali!",
+                    "Kelazzz {0}! Tim Cewek mendominasi arena!",
+                    "Mundur wir! {0} lagi mode serius!",
+                    "Poin masuk semulus skincare rutin {0}!",
+                    "Hati-hati, {0} selalu benar... dan selalu menang!",
+                    "Luar biasa {0}! Ibu Kartini pasti bangga!"
+                ],
+                cowok: [
+                    "GOL GOL GOL! {0} mencetak poin krusial!",
+                    "Bung, lihat itu! Mental baja {0} berbicara!",
+                    "{0}... Ganteng doang? Jago juga ternyata!",
+                    "Otot kawat tulang besi, {0} beraksi!",
+                    "Serangan maut dari {0} tak terbendung!",
+                    "Siapa bilang cowok ngga peka? {0} peka banget sama kemenangan!",
+                    "Raja jalanan {0} mengambil alih pimpinan!",
+                    "Boom! Headshot dari {0}! Poin untuk tim Cowok!",
+                    "Tenang, cool, dan mematikan. {0} mengamankan poin!",
+                    "{0} menyala abangkuhhh! Kasih paham!",
+                    "Logika {0} berjalan mulus, poin didapat!",
+                    "{0}: Diam menakutkan, bergerak mematikan!",
+                    "Kelas kapten {0}! Laki-laki sejati!"
+                ]
+            },
+            EN: {
+                cewek: [
+                    "Girl Power! {0} strikes again!",
+                    "Beauty and brains! {0} takes the round!",
+                    "Slay, {0}! Another point secure!",
+                    "{0} is dominating the arena right now!",
+                    "Unstoppable force! {0} adds one to the board!",
+                    "Who run the world? {0}! Point scored!",
+                    "Elegance and precision from {0}!",
+                    "Sorry boys, {0} is in charge!",
+                    "Boom! {0} strikes back!",
+                    "Sugar, spice, and {0} winning!"
+                ],
+                cowok: [
+                    "{0} represents the Boys! Point secured!",
+                    "Masculine energy from {0}! Great score!",
+                    "King of the court! {0} wins it!",
+                    "Precision strike from {0}!",
+                    "No pain no gain! {0} takes the lead!",
+                    "Smooth operator! {0} scores!",
+                    "Alpha move by {0}! Point Boys!",
+                    "Gentlemen, {0} has started the engines!",
+                    "Strength and honor! {0} dominates!",
+                    "Ice cold veins! {0} finishes it!"
+                ]
+            }
+        };
+
         let state = {
-            targetWord: "",
-            redGuesses: [],
-            blueGuesses: [],
-            redScore: 0,
-            blueScore: 0,
-            isRoundActive: false,
-            users: {} 
+            currentRound: 1, targetWord: "", cewekGuesses: [], cowokGuesses: [], cewekScore: 0, cowokScore: 0,
+            isRoundActive: false, users: {}, playerStats: {}, roundTimeLeft: 0, roundTimerInterval: null,
+            cewekRoundInputs: 0, cowokRoundInputs: 0,
+            FULL_DICT_ID: {}, currentKBBILink: null,
+            lastRoundWinnerId: null, consecutiveWins: 0, lastWinnerAvatar: null, // Streak Tracking
+            playedWords: new Set(), // NEW: To track played words
+            currentWordDefinition: "", // NEW: To store definition from AI
+            wsConnected: false, // WebSocket connection flag
+            isDeuce: false // Track deuce status
         };
 
         // --- DOM REFERENCES ---
-        const els = {
-            boardRed: document.getElementById('board-red'),
-            boardBlue: document.getElementById('board-blue'),
-            scoreRed: document.getElementById('score-red'),
-            scoreBlue: document.getElementById('score-blue'),
-            lastUserRed: document.getElementById('last-user-red'),
-            lastUserBlue: document.getElementById('last-user-blue'),
-            status: document.getElementById('connection-status'),
-            roundTimer: document.getElementById('round-timer'),
-            winnerOverlay: document.getElementById('winner-overlay'),
-            winnerText: document.getElementById('winner-text'),
-            revealedWord: document.getElementById('revealed-word'),
-            countdown: document.getElementById('countdown'),
-            playerCount: document.getElementById('player-count'),
-            countRed: document.getElementById('count-red'),
-            countBlue: document.getElementById('count-blue'),
-            barRed: document.getElementById('bar-red'),
-            barBlue: document.getElementById('bar-blue'),
-        };
+        let els = {}; // Will populate after DOM load to be safe
 
-        // --- INITIALIZATION ---
-        function initBoards() {
-            // Clear boards for new round
-            els.boardRed.innerHTML = '';
-            els.boardBlue.innerHTML = '';
+        // --- I18N HELPER ---
+        function t(key, ...args) {
+            let text = TRANSLATIONS[SETTINGS.LANGUAGE][key] || key;
+            if (!text) text = TRANSLATIONS['EN'][key] || key; // Fallback to EN
+            args.forEach((arg, i) => text = text.replace(`{${i}}`, arg));
+            return text;
+        }
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (key === 'RED_TEAM') el.innerHTML = SETTINGS.TEAM_NAME_RED_HTML;
+                else if (key === 'BLUE_TEAM') el.innerHTML = SETTINGS.TEAM_NAME_BLUE_HTML;
+                else if (key === 'TOTAL_ROUNDS' && SETTINGS.MODE === 'RALLY_POINT') el.innerHTML = t('TARGET_SCORE'); // Custom for Rally
+                else el.innerHTML = t(key);
+            });
+            // Apply placeholders
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+            });
+            selectMode(SETTINGS.MODE); // Refresh mode description text
+            els.kbbiLinkBtn.textContent = t('KBBI_OPEN');
+            els.nextRoundBtn.innerHTML = `${t('NEXT_ROUND_BTN')} (<span id="countdown">5</span>)`;
+            
+            // Update team name inputs
+            els.teamNameCewekInput.value = SETTINGS.TEAM_NAME_RED_PLAIN;
+            els.teamNameCowokInput.value = SETTINGS.TEAM_NAME_BLUE_PLAIN;
         }
 
+        // --- SETTINGS LOGIC ---
+        function selectLanguage(lang) {
+            SETTINGS.LANGUAGE = lang;
+            // Set default names if switching
+            if (lang === 'ID') {
+                SETTINGS.TEAM_NAME_RED_HTML = "TIM<br>CEWEK";
+                SETTINGS.TEAM_NAME_RED_PLAIN = "TIM CEWEK";
+                SETTINGS.TEAM_NAME_BLUE_HTML = "TIM<br>COWOK";
+                SETTINGS.TEAM_NAME_BLUE_PLAIN = "TIM COWOK";
+            } else {
+                SETTINGS.TEAM_NAME_RED_HTML = "GIRLS TEAM";
+                SETTINGS.TEAM_NAME_RED_PLAIN = "GIRLS TEAM";
+                SETTINGS.TEAM_NAME_BLUE_HTML = "BOYS TEAM";
+                SETTINGS.TEAM_NAME_BLUE_PLAIN = "BOYS TEAM";
+            }
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+                btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-400');
+            });
+            document.getElementById(`lang-btn-${lang.toLowerCase()}`).classList.add('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+            applyTranslations();
+        }
+        function selectMode(mode) {
+            SETTINGS.MODE = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+                btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-400');
+            });
+            document.getElementById(`mode-btn-${mode.toLowerCase().replace('_','')}`).classList.add('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+            if (mode === 'CLASSIC') els.modeDescription.textContent = t('MODE_DESC_CLASSIC');
+            if (mode === 'TIME_RUSH') els.modeDescription.textContent = t('MODE_DESC_TIMERUSH', SETTINGS.TIME_LIMIT);
+            if (mode === 'LIMITED') els.modeDescription.textContent = t('MODE_DESC_LIMITED', SETTINGS.INPUT_LIMIT);
+            if (mode === 'AI_MODE') els.modeDescription.textContent = t('MODE_DESC_AIMODE');
+            if (mode === 'RALLY_POINT') els.modeDescription.textContent = t('MODE_DESC_RALLY'); // NEW
+
+            // Update Settings Label
+            const roundsLabel = document.getElementById('label-rounds-or-score');
+            if (roundsLabel) {
+                roundsLabel.innerHTML = (mode === 'RALLY_POINT') ? t('TARGET_SCORE') : t('TOTAL_ROUNDS');
+            }
+        }
+        
+        // --- NEW FUNCTION: Tile Color Mode ---
+        function selectTileColorMode(mode) {
+            SETTINGS.TILE_COLOR_MODE = mode;
+            document.querySelectorAll('.tile-color-btn').forEach(btn => {
+                btn.classList.remove('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+                btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-400');
+            });
+            document.getElementById(`tile-color-btn-${mode.toLowerCase()}`).classList.add('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+        }
+
+        // --- NEW FUNCTION ---
+        function selectNextRoundMode(mode) {
+            SETTINGS.NEXT_ROUND_MODE = mode;
+            document.querySelectorAll('.next-round-btn').forEach(btn => {
+                btn.classList.remove('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+                btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-400');
+            });
+            document.getElementById(`next-round-btn-${mode.toLowerCase()}`).classList.add('bg-neon-cowok/20', 'border-neon-cowok', 'text-white');
+        }
+
+        function applySettingsAndStart() {
+            const roundsInput = parseInt(document.getElementById('setting-rounds').value);
+            if (roundsInput > 0) SETTINGS.MAX_ROUNDS = roundsInput; // This serves as TARGET SCORE in Rally Mode
+            
+            // Apply Team Names
+            SETTINGS.TEAM_NAME_RED_PLAIN = els.teamNameCewekInput.value;
+            SETTINGS.TEAM_NAME_BLUE_PLAIN = els.teamNameCowokInput.value;
+            // Add <br> logic for wrapping if language is ID
+            if (SETTINGS.LANGUAGE === 'ID') {
+                 SETTINGS.TEAM_NAME_RED_HTML = SETTINGS.TEAM_NAME_RED_PLAIN.replace(' ', '<br>');
+                 SETTINGS.TEAM_NAME_BLUE_HTML = SETTINGS.TEAM_NAME_BLUE_PLAIN.replace(' ', '<br>');
+            } else {
+                 SETTINGS.TEAM_NAME_RED_HTML = SETTINGS.TEAM_NAME_RED_PLAIN;
+                 SETTINGS.TEAM_NAME_BLUE_HTML = SETTINGS.TEAM_NAME_BLUE_PLAIN;
+            }
+
+            els.settingsOverlay.classList.add('hidden');
+            initGame();
+        }
+        function toggleSettings() {
+            if (els.settingsOverlay.classList.contains('hidden')) { 
+                els.playerSearchInput.value = ''; // Clear search on open
+                renderPlayerManagement(); 
+                els.settingsOverlay.classList.remove('hidden'); 
+            }
+            else els.settingsOverlay.classList.add('hidden');
+        }
+
+        // NEW function to filter player list
+        function filterPlayerList() {
+            const searchTerm = els.playerSearchInput.value.toLowerCase().trim();
+            renderPlayerManagement(searchTerm);
+        }
+
+        function renderPlayerManagement(searchTerm = '') { // Added searchTerm
+            els.playerList.innerHTML = '';
+            let players = Object.entries(state.users);
+
+            // --- NEW FILTER LOGIC ---
+            if (searchTerm) {
+                players = players.filter(([userId, userData]) => 
+                    userData.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            // -------------------------
+
+            if (players.length === 0) {
+                const message = searchTerm ? t('NO_PLAYERS_FOUND') : t('NO_PLAYERS');
+                els.playerList.innerHTML = `<div class="text-slate-500 text-center italic text-sm py-4">${message}</div>`; 
+                return; 
+            }
+            players.forEach(([userId, userData]) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between bg-slate-800 p-2 rounded-md animate-slide-in";
+                const isCewek = userData.team === 'cewek';
+                // Use innerHTML here to render team names with <br>
+                row.innerHTML = `<div class="flex items-center gap-2 truncate"><div class="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold">${userData.name.charAt(0)}</div><span class="text-sm font-semibold truncate">${userData.name}</span></div><button onclick="switchPlayerTeam('${userId}')" class="px-3 py-1 rounded text-xs font-bold transition-all text-center ${isCewek ? 'bg-neon-cewek/20 text-neon-cewek border border-neon-cewek hover:bg-neon-cewek hover:text-white' : 'bg-neon-cowok/20 text-neon-cowok border border-neon-cowok hover:bg-neon-cowok hover:text-white'}">${isCewek ? SETTINGS.TEAM_NAME_RED_HTML : SETTINGS.TEAM_NAME_BLUE_HTML}</button>`;
+                els.playerList.appendChild(row);
+            });
+        }
+        function switchPlayerTeam(userId) {
+            if (state.users[userId]) {
+                state.users[userId].team = state.users[userId].team === 'cewek' ? 'cowok' : 'cewek';
+                updateRecruitCounts(); renderPlayerManagement(els.playerSearchInput.value.toLowerCase().trim()); // Re-render with filter
+                showToast(t('TOAST_ADMIN_MOVED', state.users[userId].name, state.users[userId].team === 'cewek' ? `<span class='text-neon-cewek font-bold'>${SETTINGS.TEAM_NAME_RED_PLAIN}</span>` : `<span class='text-neon-cowok font-bold'>${SETTINGS.TEAM_NAME_BLUE_PLAIN}</span>`), 'info');
+            }
+        }
+        function updateRecruitCounts() {
+             let r = 0, b = 0; Object.values(state.users).forEach(u => u.team === 'cewek' ? r++ : b++);
+             els.playerCount.textContent = r + b;
+             document.querySelector('#count-cewek').textContent = r; 
+             document.querySelector('#count-cowok').textContent = b;
+        }
+
+        // --- CORE FUNCTIONS ---
+        async function initGame() {
+            applyTranslations(); // Apply language first
+            els.roundStatusText.textContent = t('LOADING_DICT');
+            try {
+                // --- FIX: Use fetchWithBackoff for dictionary load ---
+                const res = await fetchWithBackoff(URLS[SETTINGS.LANGUAGE]);
+                
+                if (!res.ok) {
+                    throw new Error(`Failed to load dictionary: ${res.status} ${res.statusText}`);
+                }
+                // --- END FIX ---
+
+                const data = await res.json();
+                if (SETTINGS.LANGUAGE === 'EN' && Array.isArray(data)) {
+                    WORD_LIST = data.map(w => w.trim().toUpperCase()).filter(w => w.length === 5 && /^[A-Z]+$/.test(w));
+                } else if (SETTINGS.LANGUAGE === 'ID' && typeof data === 'object') {
+                     state.FULL_DICT_ID = data; 
+                     WORD_LIST = Object.keys(data).map(w => w.trim().toUpperCase()).filter(w => w.length === 5 && /^[A-Z]+$/.test(w));
+                }
+                WORD_SET = new Set(WORD_LIST);
+                console.log(`Loaded ${WORD_LIST.length} words for ${SETTINGS.LANGUAGE}`);
+            } catch (e) { 
+                console.error("Dictionary load failed", e); 
+                // --- FALLBACK ---
+                // If fetching fails, provide a default list so the game doesn't break
+                if (SETTINGS.LANGUAGE === 'EN') {
+                    WORD_LIST = ['APPLE', 'BRAVO', 'CREST', 'DREAM', 'EAGLE', 'FANCY', 'GREAT', 'HOUSE', 'INPUT', 'JOKER', 'LEMON', 'MIGHT', 'NINJA', 'OCEAN', 'PROXY', 'QUEEN', 'ROYAL', 'SUPER', 'TIGER', 'ULTRA', 'VALUE', 'WORLD', 'YACHT', 'ZEBRA'];
+                } else {
+                     WORD_LIST = ['BAGUS', 'CERAH', 'DUNIA', 'FOKUS', 'GAJAH', 'HARUM', 'INDAH', 'JELAS', 'KATA', 'LAMPU', 'MANIS', 'NILAI', 'OBROL', 'PANAS', 'QURAN', 'RUMAH', 'SATU', 'TULIS', 'ULAR', 'VIRUS', 'WARNA', 'XENON', 'YAKIN', 'ZAMAN'];
+                     state.FULL_DICT_ID = {}; // Can't load it
+                }
+                WORD_SET = new Set(WORD_LIST);
+                console.warn(`Using fallback word list for ${SETTINGS.LANGUAGE} due to fetch error.`);
+                showToast("Dictionary failed to load, using fallback list.", "error");
+                // --- END FALLBACK ---
+            }
+            resetMatch(); 
+        }
+        function resetMatch() {
+            state.currentRound = 1; state.cewekScore = 0; state.cowokScore = 0; state.playerStats = {};
+            state.lastRoundWinnerId = null; state.consecutiveWins = 0; state.lastWinnerAvatar = null;
+            state.playedWords.clear(); // NEW: Clear played words on new match
+            
+            // --- RALLY MODE DISPLAY LOGIC ---
+            if (SETTINGS.MODE === 'RALLY_POINT') {
+                els.maxRoundsDisplay.textContent = SETTINGS.MAX_ROUNDS; // Target Score
+                els.roundLabel.textContent = "TARGET";
+                els.maxRoundsSeparator.textContent = ": ";
+                els.currentRound.textContent = ""; // Hide current round number initially or show score? Actually let's show round number still
+                // Better UI: "Rnd: 1 | TGT: 21" - For now let's keep simpler
+                els.roundDisplayContainer.innerHTML = `<span data-i18n="ROUND">RND</span> <span id="current-round">1</span> | TGT: <span id="max-rounds-display">${SETTINGS.MAX_ROUNDS}</span>`;
+                els.currentRound = document.getElementById('current-round'); // Re-bind
+            } else {
+                els.roundDisplayContainer.innerHTML = `<span id="round-label" data-i18n="ROUND">ROUND</span> <span id="current-round">1</span><span id="max-rounds-separator">/</span><span id="max-rounds-display">${SETTINGS.MAX_ROUNDS}</span>`;
+                els.currentRound = document.getElementById('current-round'); // Re-bind
+                els.maxRoundsDisplay = document.getElementById('max-rounds-display'); // Re-bind
+            }
+            
+            state.isDeuce = false;
+            document.getElementById('deuce-indicator').classList.add('hidden');
+
+            updateScoreDisplay(); // Resets bar to 50/50
+            els.mvpOverlay.classList.add('hidden'); 
+            startNewRound();
+        }
         function startNewRound() {
-            state.isRoundActive = true;
-            state.targetWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-            state.redGuesses = [];
-            state.blueGuesses = [];
+            if (WORD_LIST.length === 0 && SETTINGS.MODE !== 'AI_MODE') return; // Allow AI mode even if list is empty
+            clearInterval(state.roundTimerInterval);
+            state.isRoundActive = false; // Set to false, async function will set it to true
+            state.targetWord = ""; // Clear target word
+            state.cewekGuesses = []; state.cowokGuesses = []; state.cewekRoundInputs = 0; state.cowokRoundInputs = 0;
+            state.currentKBBILink = null;
+            state.currentWordDefinition = ""; // NEW: Clear definition
+            els.boardCewek.innerHTML = ''; els.boardCowok.innerHTML = '';
+            els.lastUserCewek.innerHTML = '<span class="opacity-50">-</span>'; els.lastUserCowok.innerHTML = '<span class="opacity-50">-</span>';
+            els.roundOverlay.classList.add('hidden'); els.revealedWordTranslation.textContent = "";
             
-            initBoards();
-            els.lastUserRed.textContent = '-';
-            els.lastUserBlue.textContent = '-';
-            els.winnerOverlay.classList.add('hidden');
-            els.roundTimer.textContent = "ROUND ACTIVE! DEPLOY YOUR WORDS!";
+            // Reset battle bar icon IF not on streak
+            if (state.consecutiveWins < 1) {
+                els.battleBarIcon.innerHTML = 'VS';
+                els.battleBarIcon.className = "absolute top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 border-2 border-slate-600 rounded-full w-8 h-8 flex items-center justify-center text-xs font-gaming text-slate-300 z-20 shadow-lg transition-all duration-700 ease-in-out overflow-hidden";
+            }
+            // ...but keep the position based on score
+            updateScoreDisplay(); 
+
+            els.currentRound.textContent = state.currentRound; 
             
-            console.log("Target:", state.targetWord); 
+            // --- NEW ASYNC WORD SETUP ---
+            setupRoundWord(); // Call the new async function
+            // --- END ---
+
+            // document.getElementById('manual-guess').placeholder = "..."; // <-- DIHAPUS DARI SINI
+            // console.log("Target:", state.targetWord); // Moved to setupRoundWord
+            els.modeIndicator.classList.add('hidden');
+            if (SETTINGS.MODE === 'TIME_RUSH') {
+                state.roundTimeLeft = SETTINGS.TIME_LIMIT; els.modeIndicator.classList.remove('hidden'); updateTimerDisplay();
+                state.roundTimerInterval = setInterval(() => {
+                    state.roundTimeLeft--; updateTimerDisplay();
+                    if (state.roundTimeLeft <= 0) endRound('draw', null, null, null, t('TIMES_UP'));
+                }, 1000);
+            } else if (SETTINGS.MODE === 'LIMITED') {
+                els.modeIndicator.classList.remove('hidden'); updateInputLimitDisplay();
+            }
         }
 
-        function updateBattleBar() {
-            const total = state.redScore + state.blueScore;
-            let redPercent = 50;
-            let bluePercent = 50;
-
-            if (total > 0) {
-                redPercent = (state.redScore / total) * 100;
-                bluePercent = 100 - redPercent;
-            }
+        // --- NEW ASYNC FUNCTION TO SET UP WORD ---
+        async function setupRoundWord() {
+            // --- DITAMBAHKAN DI SINI ---
+            document.getElementById('manual-guess').placeholder = "..."; // Set to "loading"
             
-            if (state.redScore > 0 && redPercent < 5) redPercent = 5;
-            if (state.blueScore > 0 && bluePercent < 5) bluePercent = 5;
-             if (total > 0) {
-                 bluePercent = 100 - redPercent;
+            try {
+                // Set loading state
+                els.roundStatusText.textContent = t('LOADING_DICT'); // Default
+                state.isRoundActive = false;
+
+                let word, definition = "";
+
+                if (SETTINGS.MODE === 'AI_MODE') {
+                    els.roundStatusText.textContent = t('GENERATING_WORD_AI');
+                    
+                    const lang = SETTINGS.LANGUAGE === 'ID' ? 'Indonesian' : 'English';
+                    const played = Array.from(state.playedWords).join(', ') || "none"; // Handle empty set
+                    const systemPrompt = `You are a word game assistant. Generate a unique 5-letter ${lang} word that is NOT in this list: [${played}]. The word must be a common, valid word (not an abbreviation or proper noun). Also provide a brief, one-sentence definition for this word in Indonesian. Return ONLY a valid JSON object in this exact format: {"word": "...", "definition": "..."}. Do not include \`\`\`json or any other text.`;
+                    
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    
+                    const payload = {
+                        contents: [{ parts: [{ text: "Generate a new 5-letter word and its Indonesian definition." }] }], // User prompt
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "word": { "type": "STRING" },
+                                    "definition": { "type": "STRING" }
+                                },
+                                required: ["word", "definition"]
+                            }
+                        }
+                    };
+                    
+                    const response = await fetchWithBackoff(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`AI API failed: ${response.status}`);
+                    
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    
+                    if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                        throw new Error('Invalid AI response structure');
+                    }
+
+                    const jsonResponse = JSON.parse(candidate.content.parts[0].text);
+                    word = jsonResponse.word.trim().toUpperCase();
+                    definition = jsonResponse.definition.trim();
+
+                    if (word.length !== 5 || !/^[A-Z]+$/.test(word)) {
+                        console.error("AI returned invalid word format, retrying:", word);
+                        throw new Error('AI returned invalid word format'); // Trigger retry
+                    }
+                    
+                    state.currentWordDefinition = definition;
+                    WORD_SET.add(word); // Add to valid word list for this session
+
+                } else {
+                    // --- Original random word logic (with check) ---
+                    if (WORD_LIST.length === 0) { // Check if list is empty
+                         els.roundStatusText.textContent = "Error: Word list empty!";
+                         return;
+                    }
+                    
+                    // Find a word not in playedWords
+                    let availableWords = WORD_LIST.filter(w => !state.playedWords.has(w));
+                    if (availableWords.length === 0) {
+                        // All words played, reset the set
+                        console.log("All words played, resetting playedWords set.");
+                        state.playedWords.clear();
+                        availableWords = WORD_LIST;
+                    }
+                    
+                    word = availableWords[Math.floor(Math.random() * availableWords.length)];
+                    state.currentWordDefinition = ""; // Will be fetched at the end
+                }
+
+                // --- Common setup logic ---
+                state.targetWord = word;
+                state.playedWords.add(word); // Add to played list
+                state.isRoundActive = true; // <<< GAME IS NOW ACTIVE
+                
+                els.roundStatusText.textContent = t('DEPLOY_WORDS');
+                document.getElementById('manual-guess').placeholder = state.targetWord; // SHOW TARGET
+                console.log("Target:", state.targetWord);
+                if (definition) console.log("Definition:", definition);
+
+            } catch (e) {
+                console.error("Error setting up round word:", e);
+                els.roundStatusText.textContent = "Error! Restarting round...";
+                // Fallback: try starting a new round in classic mode
+                if(SETTINGS.MODE === 'AI_MODE') {
+                    console.log("AI Mode failed, falling back to Classic.");
+                    SETTINGS.MODE = 'CLASSIC'; // Force classic to avoid loop
+                    selectMode('CLASSIC'); // Update UI
+                }
+                setTimeout(startNewRound, 2000); // Try again after 2s
+            }
+        }
+        
+        function updateTimerDisplay() { els.modeIndicator.innerHTML = `<span class="${state.roundTimeLeft <= 10 ? 'text-neon-cewek animate-pulse' : 'text-white'}">⏱️ ${state.roundTimeLeft}s</span>`; }
+        function updateInputLimitDisplay() {
+            const rLeft = SETTINGS.INPUT_LIMIT - state.cewekRoundInputs; const bLeft = SETTINGS.INPUT_LIMIT - state.cowokRoundInputs;
+            els.modeIndicator.innerHTML = `<span class="${rLeft <= 3 ? 'text-neon-cewek animate-pulse' : 'text-white'}">C: ${rLeft}</span><span class="text-slate-500 mx-2">|</span><span class="${bLeft <= 3 ? 'text-neon-cowok animate-pulse' : 'text-white'}">B: ${bLeft}</span>`;
+        }
+        function updateScoreDisplay() {
+            els.scoreCewek.textContent = state.cewekScore; els.scoreCowok.textContent = state.cowokScore;
+            const total = state.cewekScore + state.cowokScore; let rPct = 50, bPct = 50;
+            if (total > 0) { rPct = Math.max(5, (state.cewekScore / total) * 100); bPct = 100 - rPct; if (bPct < 5) { bPct = 5; rPct = 95; } }
+            els.barCewek.style.width = `${rPct}%`; els.barCowok.style.width = `${bPct}%`;
+            els.battleBarIcon.style.left = `${rPct}%`; // Animate icon position with bar
+        }
+        async function revealWordMeaning(word) {
+             els.revealedWordTranslation.textContent = t('TRANSLATING');
+             const wordLower = word.toLowerCase();
+
+             // 1. Check for AI Mode (definition is pre-fetched)
+             if (SETTINGS.MODE === 'AI_MODE' && state.currentWordDefinition) {
+                 els.revealedWordTranslation.textContent = `(${state.currentWordDefinition})`;
+                 return;
              }
+             
+             // 2. Check for Indonesian Language (use local dict)
+             if (SETTINGS.LANGUAGE === 'ID') {
+                 try {
+                     const entry = state.FULL_DICT_ID[wordLower];
+                     state.currentKBBILink = entry?.data?.pranala; // Store the link
+                     if (entry && entry.data && entry.data.entri && entry.data.entri[0] && entry.data.entri[0].makna) {
+                          const firstMakna = entry.data.entri[0].makna[0];
+                          if (firstMakna && firstMakna.submakna && firstMakna.submakna.length > 0) {
+                              const defs = firstMakna.submakna.join(', '); // Removed slice
+                              els.revealedWordTranslation.textContent = `(${defs})`;
+                              return;
+                          }
+                     }
+                     els.revealedWordTranslation.textContent = "(Definisi tidak ditemukan)";
+                 } catch (e) { console.error("Def lookup failed", e); els.revealedWordTranslation.textContent = ""; }
+             
+             // 3. Check for English Language (use Gemini for definition)
+             } else {
+                 try { // <--- START OF TRY
+                    const apiKey = ""; // API key is handled by the environment
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    
+                    // --- UPDATED PROMPT: Ask for definition in Indonesian ---
+                    const systemPrompt = "You are a concise dictionary. Provide a brief, one-sentence definition for the given English word, written in Indonesian. Provide only the definition, nothing else. Do not add parentheses or any extra text.";
+                    
+                    const payload = {
+                        contents: [{ parts: [{ text: word }] }], // 'word' is the word to translate
+                        systemInstruction: {
+                            parts: [{ text: systemPrompt }]
+                        },
+                    };
 
-            els.barRed.style.width = `${redPercent}%`;
-            els.barBlue.style.width = `${bluePercent}%`;
+                    // Use the fetchWithBackoff helper function
+                    const response = await fetchWithBackoff(apiUrl, { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const definition = candidate.content.parts[0].text;
+                        // We add parentheses here to match the UI style
+                        els.revealedWordTranslation.textContent = `(${definition.trim()})`; 
+                    } else {
+                        console.error("Gemini definition failed, unexpected response:", result);
+                        els.revealedWordTranslation.textContent = "(Definition failed)";
+                    }
+                 // --- BUG FIX: Added the missing catch block ---
+                 } catch (e) { 
+                     console.error("Gemini fetch error:", e);
+                     els.revealedWordTranslation.textContent = "(Definition error)"; // Show error in UI
+                 }
+                 // --- END NEW GEMINI BLOCK ---
+             }
         }
-
-        // --- TEAM LOGIC ---
-        function assignTeam(userId, nickname) {
-            if (state.users[userId]) return state.users[userId].team;
-            let redCount = 0, blueCount = 0;
-            Object.values(state.users).forEach(u => u.team === 'red' ? redCount++ : blueCount++);
-            const newTeam = (redCount <= blueCount) ? 'red' : 'blue';
-            state.users[userId] = { team: newTeam, name: nickname };
-            updatePlayerCounts();
-            return newTeam;
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            let colors = 'bg-slate-900/90 border-slate-500 text-slate-200';
+            if (type === 'error') colors = 'bg-red-950/90 border-red-500 text-red-200';
+            if (type === 'welcome-cewek') colors = 'bg-fuchsia-950/90 border-neon-cewek text-white';
+            if (type === 'welcome-cowok') colors = 'bg-cyan-950/90 border-neon-cowok text-white';
+            toast.className = `${colors} px-4 py-2 rounded-lg border shadow-lg text-sm font-semibold animate-pop backdrop-blur-md max-w-sm text-center break-words`;
+            toast.innerHTML = message; els.toastContainer.appendChild(toast);
+            setTimeout(() => { toast.classList.add('animate-fade-out'); setTimeout(() => toast.remove(), 500); }, 3000);
         }
-
-        function updatePlayerCounts() {
-             let redCount = 0, blueCount = 0;
-             Object.values(state.users).forEach(u => u.team === 'red' ? redCount++ : blueCount++);
-             els.playerCount.textContent = redCount + blueCount;
-             els.countRed.textContent = redCount;
-             els.countBlue.textContent = blueCount;
+        function trackUserStat(userId, team, nickname, avatar, isCorrect) {
+            if (!state.playerStats[userId]) state.playerStats[userId] = { correct: 0, total: 0, team, name: nickname, avatar };
+            state.playerStats[userId].total++; if (isCorrect) state.playerStats[userId].correct++;
+            if (avatar && !state.playerStats[userId].avatar) state.playerStats[userId].avatar = avatar;
         }
-
-        // --- GAMEPLAY LOGIC ---
-        function processGuess(team, word, nickname) {
+        function processGuess(userId, team, word, nickname, avatar) {
             if (!state.isRoundActive) return;
-            if (word.length !== 5) return;
-
-            const guesses = team === 'red' ? state.redGuesses : state.blueGuesses;
-            // Optional: Limit total guesses if desired, currently effectively unlimited for battle
-            // if (guesses.length >= MAX_GUESSES) return; 
-
-            guesses.push(word);
-            const userEl = team === 'red' ? els.lastUserRed : els.lastUserBlue;
-            userEl.textContent = nickname;
-            userEl.classList.remove('animate-pop');
-            void userEl.offsetWidth; 
-            userEl.classList.add('animate-pop');
-
-            // RENDER AND PREPEND
-            createAndPrependRow(team === 'red' ? els.boardRed : els.boardBlue, word);
-
-            if (word === state.targetWord) {
-                endRound(team);
+            if (SETTINGS.MODE === 'LIMITED') {
+                 if (team === 'cewek' && state.cewekRoundInputs >= SETTINGS.INPUT_LIMIT) { showToast(t('TOAST_CEWEK_OUT', nickname, SETTINGS.TEAM_NAME_RED_PLAIN), 'error'); return; }
+                 if (team === 'cowok' && state.cowokRoundInputs >= SETTINGS.INPUT_LIMIT) { showToast(t('TOAST_COWOK_OUT', nickname, SETTINGS.TEAM_NAME_BLUE_PLAIN), 'error'); return; }
             }
-            // Draw condition removed for infinite battle until win
-        }
-
-        function createAndPrependRow(boardEl, guess) {
-            const row = document.createElement('div');
-            // Added 'animate-slide-in' and 'mb-2' for spacing between rows
-            row.className = 'grid grid-cols-5 gap-2 mb-2 animate-slide-in flex-shrink-0';
+            const guesses = team === 'cewek' ? state.cewekGuesses : state.cowokGuesses; guesses.push(word);
+            if (team === 'cewek') state.cewekRoundInputs++; else state.cowokRoundInputs++;
+            if (SETTINGS.MODE === 'LIMITED') updateInputLimitDisplay();
+            const isWin = (word === state.targetWord); trackUserStat(userId, team, nickname, avatar, isWin);
             
-            const target = state.targetWord;
-            let letterCounts = {};
-            for (let char of target) letterCounts[char] = (letterCounts[char] || 0) + 1;
-
-            let status = new Array(5).fill('absent');
-            for (let i = 0; i < 5; i++) {
-                if (guess[i] === target[i]) {
-                    status[i] = 'correct';
-                    letterCounts[guess[i]]--;
-                }
-            }
-            for (let i = 0; i < 5; i++) {
-                if (status[i] !== 'correct' && target.includes(guess[i]) && letterCounts[guess[i]] > 0) {
-                    status[i] = 'present';
-                    letterCounts[guess[i]]--;
-                }
+            const userEl = team === 'cewek' ? els.lastUserCewek : els.lastUserCowok;
+            const isAdmin = nickname.toUpperCase() === 'ADMIN';
+            
+            // Streak Check for "Latest Attack"
+            let avatarClass = 'border-white/50';
+            if (isAdmin) {
+                avatarClass = 'fire-pulse-cewek'; // Admin default pulse
+            } else if (userId === state.lastRoundWinnerId && state.consecutiveWins >= 1) {
+                avatarClass = team === 'cewek' ? 'fire-pulse-cewek' : 'fire-pulse-cowok';
             }
 
-            // Create tiles
-            for (let i = 0; i < 5; i++) {
-                const tile = document.createElement('div');
-                tile.className = 'tile w-10 h-10 md:w-14 md:h-14 border-2 border-slate-700 flex items-center justify-center text-xl md:text-3xl font-bold uppercase bg-slate-800/80 rounded-md md:rounded-lg';
-                tile.textContent = guess[i];
-                row.appendChild(tile);
+            const avatarImg = avatar ? `<img src="${avatar}" class="w-8 h-8 rounded-full border ${avatarClass} object-cover">` : `<div class="w-8 h-8 rounded-full bg-slate-700 border ${avatarClass} flex items-center justify-center font-bold">${nickname.charAt(0)}</div>`;
+            userEl.innerHTML = `${avatarImg}<span class="text-sm font-semibold truncate max-w-[120px]">${nickname}</span>`;
+            userEl.classList.remove('animate-pop'); void userEl.offsetWidth; userEl.classList.add('animate-pop');
+            
+            // --- PERUBAHAN DI SINI: Meneruskan 'team' ke createRow ---
+            createRow(team === 'cewek' ? els.boardCewek : els.boardCowok, word, team, isWin); 
 
-                // Trigger flip & color after a short delay so they slide in first, then flip
+            if (isWin) {
+                // --- FIX: Wait for tiles to flip before showing popup ---
+                state.isRoundActive = false; // Stop game immediately
+                clearInterval(state.roundTimerInterval); // Stop timer if running
+
+                // Wait 1.4s (1400ms) for flip animation to complete
+                // Animation is (100 + 4*150ms) + 600ms = 1300ms total
                 setTimeout(() => {
-                    tile.classList.add('flip');
-                    setTimeout(() => {
-                        if (status[i] === 'correct') tile.classList.add('bg-tile-correct', 'border-tile-correct', 'shadow-[0_0_15px_rgba(34,197,94,0.5)]');
-                        else if (status[i] === 'present') tile.classList.add('bg-tile-present', 'border-tile-present');
+                    endRound(team, userId, nickname, avatar); // Pass USERID for streak check
+                }, 1400); 
+                // ---------------------------------------------------
+
+            } else if (SETTINGS.MODE === 'LIMITED' && state.cewekRoundInputs >= SETTINGS.INPUT_LIMIT && state.cowokRoundInputs >= SETTINGS.INPUT_LIMIT) {
+                endRound('draw', null, null, null, t('OUT_OF_AMMO'));
+            }
+        }
+        // --- PERUBAHAN DI SINI: Menambahkan parameter 'team' ---
+        function createRow(board, word, team, isWin) {
+            // COMPACT MODE: gap-0.5 for mobile consistency
+            const row = document.createElement('div'); row.className = 'grid grid-cols-5 gap-0.5 md:gap-1 mb-0.5 md:mb-1 animate-slide-in flex-shrink-0 justify-items-center'; 
+            let target = state.targetWord; let counts = {}; for (let c of target) counts[c] = (counts[c] || 0) + 1;
+            let status = Array(5).fill('absent');
+            for (let i = 0; i < 5; i++) { if (word[i] === target[i]) { status[i] = 'correct'; counts[word[i]]--; } }
+            for (let i = 0; i < 5; i++) { if (status[i] !== 'correct' && target.includes(word[i]) && counts[word[i]] > 0) { status[i] = 'present'; counts[word[i]]--; } }
+            for (let i = 0; i < 5; i++) {
+                const tile = document.createElement('div'); 
+                // --- PERUBAHAN UKURAN TILE ---
+                // Ukuran responsif: Kecil di mobile (w-full max-w-[1.7rem]), membesar di tablet/desktop
+                // Menggunakan w-full agar mengisi grid column dengan rapi
+                tile.className = 'tile w-full aspect-square max-w-[2rem] sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 border border-slate-700 flex items-center justify-center text-xs sm:text-lg md:text-2xl font-bold bg-slate-800/80 rounded-[2px] md:rounded-md';
+                tile.textContent = word[i]; row.appendChild(tile);
+                setTimeout(() => { tile.classList.add('flip'); setTimeout(() => {
+                        // --- PERUBAHAN DI SINI: Logika warna berdasarkan tim DAN PENGATURAN ---
+                        if (status[i] === 'correct') {
+                            if (SETTINGS.TILE_COLOR_MODE === 'TEAM') {
+                                const colorClass = team === 'cewek' ? 'bg-neon-cewek' : 'bg-neon-cowok';
+                                const borderClass = team === 'cewek' ? 'border-neon-cewek' : 'border-neon-cowok';
+                                tile.classList.add(colorClass, borderClass, 'text-slate-900'); // Teks gelap agar kontras
+                            } else {
+                                // Mode Standar (Wordle Hijau)
+                                tile.classList.add('bg-tile-correct', 'border-tile-correct', 'text-white');
+                            }
+                        }
+                        else if (status[i] === 'present') {
+                            if (SETTINGS.TILE_COLOR_MODE === 'TEAM') {
+                                const colorClass = team === 'cewek' ? 'bg-cewek-present' : 'bg-cowok-present';
+                                const borderClass = team === 'cewek' ? 'border-cewek-present' : 'border-cowok-present';
+                                tile.classList.add(colorClass, borderClass, 'text-white');
+                            } else {
+                                // Mode Standar (Wordle Kuning)
+                                tile.classList.add('bg-tile-present', 'border-tile-present', 'text-white');
+                            }
+                        }
+                        // --- Akhir Perubahan ---
                         else tile.classList.add('bg-tile-absent', 'border-tile-absent', 'opacity-50');
                         tile.classList.remove('bg-slate-800/80', 'border-slate-700');
-                    }, 300);
-                }, 100 + (i * 150)); // Slightly delayed start to let slide-in happen
+                }, 300); }, 100 + i * 150);
             }
-
-            // PREPEND to show newest at top
-            boardEl.prepend(row);
+            board.prepend(row);
         }
 
-        function endRound(winner) {
-            state.isRoundActive = false;
-            if (winner === 'red') {
-                state.redScore++;
-                els.scoreRed.textContent = state.redScore;
-                els.winnerText.textContent = "RED TEAM WINS!";
-                els.winnerText.className = "font-gaming text-7xl md:text-9xl mb-8 animate-pop drop-shadow-[0_0_50px_rgba(255,51,102,0.8)] text-neon-red";
-            } else if (winner === 'blue') {
-                state.blueScore++;
-                els.scoreBlue.textContent = state.blueScore;
-                els.winnerText.textContent = "BLUE TEAM WINS!";
-                els.winnerText.className = "font-gaming text-7xl md:text-9xl mb-8 animate-pop drop-shadow-[0_0_50px_rgba(0,242,255,0.8)] text-neon-blue";
+        // --- ROUND/MATCH END ---
+        function endRound(winnerTeam, winnerUserId, winnerName, winnerAvatar, drawReason) {
+            state.isRoundActive = false; clearInterval(state.roundTimerInterval);
+            
+            let placeholderAvatar = `https://placehold.co/40x40/${winnerTeam === 'cewek' ? 'a21caf' : '1e3a8a'}/FFF?text=${winnerName ? winnerName.charAt(0) : '?'}`;
+            
+            // Streak Logic
+            if (winnerUserId && winnerUserId === state.lastRoundWinnerId) {
+                state.consecutiveWins++;
+            } else if (winnerUserId) {
+                state.consecutiveWins = 1;
+                state.lastRoundWinnerId = winnerUserId;
+                state.lastWinnerAvatar = winnerAvatar || placeholderAvatar;
+            } else { // Draw
+                state.consecutiveWins = 0;
+                state.lastRoundWinnerId = null;
+                state.lastWinnerAvatar = null;
+            }
+
+            if (winnerTeam === 'cewek') {
+                state.cewekScore++; els.roundWinnerText.textContent = t('WINS_MESSAGE', SETTINGS.TEAM_NAME_RED_PLAIN);
+                els.roundWinnerText.className = "font-gaming text-5xl md:text-7xl mb-8 animate-pop text-neon-cewek drop-shadow-[0_0_30px_rgba(232,121,249,0.8)]";
+                els.solvedByContainer.classList.remove('hidden');
+                els.battleBarIcon.innerHTML = `<img src="${state.lastWinnerAvatar}" class="w-full h-full object-cover">`;
+                let streakClass = state.consecutiveWins > 1 ? 'fire-pulse-cewek' : '';
+                els.battleBarIcon.className = `absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full w-10 h-10 z-20 transition-all duration-700 ease-in-out overflow-hidden border-4 border-neon-cewek shadow-[0_0_10px_#e879f9] ${streakClass}`;
+            } else if (winnerTeam === 'cowok') {
+                state.cowokScore++; els.roundWinnerText.textContent = t('WINS_MESSAGE', SETTINGS.TEAM_NAME_BLUE_PLAIN);
+                els.roundWinnerText.className = "font-gaming text-5xl md:text-7xl mb-8 animate-pop text-neon-cowok drop-shadow-[0_0_30px_rgba(0,242,255,0.8)]";
+                els.solvedByContainer.classList.remove('hidden');
+                els.battleBarIcon.innerHTML = `<img src="${state.lastWinnerAvatar}" class="w-full h-full object-cover">`;
+                let streakClass = state.consecutiveWins > 1 ? 'fire-pulse-cowok' : '';
+                els.battleBarIcon.className = `absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full w-10 h-10 z-20 transition-all duration-700 ease-in-out overflow-hidden border-4 border-neon-cowok shadow-[0_0_10px_#00f2ff] ${streakClass}`;
             } else {
-                // Draw less likely now with infinite guesses, but kept just in case
-                els.winnerText.textContent = "STALEMATE!";
-                els.winnerText.className = "font-gaming text-7xl md:text-9xl mb-8 animate-pop drop-shadow-2xl text-slate-300";
+                els.roundWinnerText.textContent = drawReason || t('STALEMATE');
+                els.roundWinnerText.className = "font-gaming text-4xl md:text-6xl mb-8 animate-pop text-slate-300";
+                els.solvedByContainer.classList.add('hidden');
+            }
+            updateScoreDisplay(); // This now animates bar AND icon
+            if (winnerName) { els.winnerName.textContent = winnerName; els.winnerAvatar.src = winnerAvatar || placeholderAvatar; }
+            els.roundStatRed.textContent = state.cewekRoundInputs; els.roundStatBlue.textContent = state.cowokRoundInputs;
+            els.revealedWord.textContent = state.targetWord; revealWordMeaning(state.targetWord);
+
+            if (SETTINGS.LANGUAGE === 'ID' && state.currentKBBILink) {
+                els.kbbiLinkBtn.classList.remove('hidden');
+            } else {
+                els.kbbiLinkBtn.classList.add('hidden');
             }
             
-            updateBattleBar(); 
+            // --- CHECK FOR DEUCE IN RALLY MODE & LIVE COMMENTARY ---
+            const commentaryEl = document.getElementById('live-commentary-display');
+            if (SETTINGS.MODE === 'RALLY_POINT') {
+                const target = SETTINGS.MAX_ROUNDS;
+                const scoreDiff = Math.abs(state.cewekScore - state.cowokScore);
+                const maxScore = Math.max(state.cewekScore, state.cowokScore);
+                
+                // 1. Deuce Logic
+                if (maxScore >= target - 1 && scoreDiff < 2) {
+                    document.getElementById('deuce-indicator').classList.remove('hidden');
+                } else {
+                    document.getElementById('deuce-indicator').classList.add('hidden');
+                }
 
-            els.revealedWord.textContent = state.targetWord;
-            els.winnerOverlay.classList.remove('hidden');
+                // 2. Live Commentary Logic (NEW)
+                if (winnerTeam === 'cewek' || winnerTeam === 'cowok') {
+                    const langKey = SETTINGS.LANGUAGE; // 'ID' or 'EN'
+                    const teamKey = winnerTeam; // 'cewek' or 'cowok'
+                    const commentsList = COMMENTARY[langKey][teamKey];
+                    
+                    if (commentsList && commentsList.length > 0) {
+                        let randomComment = commentsList[Math.floor(Math.random() * commentsList.length)];
+                        
+                        // --- PERUBAHAN DI SINI: Masukan nama pemenang ---
+                        // Mengganti placeholder {0} dengan winnerName
+                        // Jika winnerName kosong (jarang terjadi), gunakan "Seseorang"
+                        const displayName = winnerName || (langKey === 'ID' ? "Seseorang" : "Someone");
+                        randomComment = randomComment.replace("{0}", displayName);
+                        
+                        commentaryEl.textContent = `"${randomComment}"`;
+                        commentaryEl.classList.remove('hidden');
+                    }
+                } else {
+                    commentaryEl.classList.add('hidden'); // Hide on draw
+                }
 
-            let count = 5;
+            } else {
+                // Classic mode
+                document.getElementById('deuce-indicator').classList.add('hidden');
+                commentaryEl.classList.add('hidden'); // Always hide in classic
+            }
+            // -------------------------------------
+
+            els.roundOverlay.classList.remove('hidden'); // Show the overlay first
+
+            // --- MODIFIED: Check for Auto vs Manual transition ---
+            if (SETTINGS.NEXT_ROUND_MODE === 'AUTO') {
+                // Auto mode: Start countdown immediately
+                els.nextRoundBtn.disabled = true;
+                els.kbbiLinkBtn.disabled = true;
+                startNextRoundTransition(); // This sets its own countdown text
+            } else {
+                // Manual mode: Wait for admin click
+                els.nextRoundBtn.disabled = false;
+                els.kbbiLinkBtn.disabled = false;
+                els.countdown.textContent = "15"; // Reset countdown text
+            }
+            // --- END MODIFICATION ---
+        }
+
+        function startNextRoundTransition() {
+            els.nextRoundBtn.disabled = true; els.kbbiLinkBtn.disabled = true;
+            if(state.countdownInterval) clearInterval(state.countdownInterval); 
+            
+            let count = 15;
             els.countdown.textContent = count;
-            const timer = setInterval(() => {
+            
+            state.countdownInterval = setInterval(() => {
                 count--;
-                els.countdown.textContent = count;
+                // Update countdown span inside the button
+                const countdownSpan = document.getElementById('countdown');
+                if(countdownSpan) countdownSpan.textContent = count;
+                
                 if (count <= 0) {
-                    clearInterval(timer);
-                    startNewRound();
+                    clearInterval(state.countdownInterval);
+                    state.countdownInterval = null;
+                    
+                    // --- WIN CONDITION LOGIC ---
+                    let isMatchOver = false;
+                    if (SETTINGS.MODE === 'RALLY_POINT') {
+                        // Rally Point Logic: Target Score + Win by 2
+                        const target = SETTINGS.MAX_ROUNDS;
+                        const scoreDiff = Math.abs(state.cewekScore - state.cowokScore);
+                        const maxScore = Math.max(state.cewekScore, state.cowokScore);
+
+                        if (maxScore >= target && scoreDiff >= 2) {
+                            isMatchOver = true;
+                        }
+                    } else {
+                        // Standard Logic: Fixed Rounds
+                        if (state.currentRound >= SETTINGS.MAX_ROUNDS) {
+                            isMatchOver = true;
+                        }
+                    }
+
+                    if (isMatchOver) {
+                         showMatchMVP();
+                    } else {
+                         state.currentRound++;
+                         startNewRound();
+                    }
                 }
             }, 1000);
         }
 
-        // --- TIKFINITY & WS ---
-        let ws;
-        function connectTikFinity() {
-            els.status.innerHTML = '<span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-ping"></span>Connecting...';
-            els.status.className = "text-xs px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 mt-2 flex items-center";
-            try {
-                ws = new WebSocket('ws://localhost:21213/');
-                ws.onopen = () => {
-                    els.status.innerHTML = '<span class="w-2 h-2 bg-green-500 rounded-full mr-2 shadow-[0_0_10px_#22c55e]"></span>LIVE CONNECTED';
-                    els.status.className = "text-xs px-3 py-1 rounded-full bg-green-500/20 text-green-400 mt-2 flex items-center font-bold tracking-wider";
-                    console.log("TikFinity Connected");
-                };
-                ws.onclose = () => {
-                    els.status.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>DISCONNECTED';
-                    els.status.className = "text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-400 mt-2 flex items-center font-bold";
-                    setTimeout(connectTikFinity, 5000);
-                };
-                ws.onerror = (err) => { ws.close(); };
-                ws.onmessage = (event) => {
-                    try {
-                        const pl = JSON.parse(event.data);
-                        if (pl.event === 'chat') handleChat(pl.data);
-                    } catch (e) {}
-                };
-            } catch (e) { setTimeout(connectTikFinity, 5000); }
+        function showMatchMVP() {
+            els.roundOverlay.classList.add('hidden'); els.mvpOverlay.classList.remove('hidden');
+            let winningTeam = state.cewekScore > state.cowokScore ? 'cewek' : (state.cowokScore > state.cewekScore ? 'cowok' : 'draw');
+            if (winningTeam === 'cewek') {
+                els.matchResultBanner.className = "w-full py-2 md:py-4 bg-gradient-to-r from-transparent via-neon-cewek/50 to-transparent text-center mb-4 md:mb-8 flex-shrink-0";
+                els.matchWinnerText.textContent = t('VICTORY_MESSAGE', SETTINGS.TEAM_NAME_RED_PLAIN); 
+                // UPDATED CLASS FOR COMPACT MOBILE
+                els.matchWinnerText.className = "font-gaming text-4xl md:text-7xl text-neon-cewek drop-shadow-[0_0_30px_rgba(232,121,249,0.8)] animate-pop";
+            } else if (winningTeam === 'cowok') {
+                els.matchResultBanner.className = "w-full py-2 md:py-4 bg-gradient-to-r from-transparent via-neon-cowok/50 to-transparent text-center mb-4 md:mb-8 flex-shrink-0";
+                els.matchWinnerText.textContent = t('VICTORY_MESSAGE', SETTINGS.TEAM_NAME_BLUE_PLAIN); 
+                // UPDATED CLASS FOR COMPACT MOBILE
+                els.matchWinnerText.className = "font-gaming text-4xl md:text-7xl text-neon-cowok drop-shadow-[0_0_30px_rgba(0,242,255,0.8)] animate-pop";
+            } else {
+                els.matchResultBanner.className = "w-full py-2 md:py-4 bg-gradient-to-r from-transparent via-slate-500/50 to-transparent text-center mb-4 md:mb-8 flex-shrink-0";
+                els.matchWinnerText.textContent = t('MATCH_DRAW'); 
+                // UPDATED CLASS FOR COMPACT MOBILE
+                els.matchWinnerText.className = "font-gaming text-4xl md:text-7xl text-white animate-pop";
+            }
+            let candidates = Object.values(state.playerStats);
+            if (winningTeam !== 'draw') { candidates = candidates.filter(p => p.team === winningTeam); if (candidates.length === 0) candidates = Object.values(state.playerStats); }
+            candidates.sort((a, b) => { if (b.correct !== a.correct) return b.correct - a.correct; return b.total - a.total; });
+            
+            const mvp = candidates[0] || { name: "-", correct: 0, total: 0, team: 'cewek' };
+            els.mvpName.textContent = mvp.name; els.mvpKills.textContent = mvp.correct; els.mvpAssists.textContent = mvp.total;
+            els.mvpTeamBadge.className = `block w-8 h-8 rounded-full border-2 border-white ${mvp.team === 'cewek' ? 'bg-neon-cewek' : 'bg-neon-cowok'}`;
+            els.mvpImage.src = mvp.avatar || `https://placehold.co/200x200/${mvp.team === 'cewek' ? 'a21caf' : '1e3a8a'}/fbbf24?text=${mvp.name.charAt(0)}`;
+            
+            // --- NEW: Populate Top Players List ---
+            els.topPlayersList.innerHTML = ''; // Clear list
+            if (candidates.length > 0) {
+                candidates.forEach((player, index) => {
+                    const row = document.createElement('div');
+                    // Highlight MVP in list
+                    const rowClasses = (index === 0) 
+                        ? 'bg-neon-gold/10 border-neon-gold/30' 
+                        : 'bg-slate-800/50 border-slate-700/50';
+                    
+                    row.className = `flex justify-between items-center p-1.5 md:p-2 rounded border mb-1 md:mb-2 ${rowClasses}`; // Lebih compact padding
+                    
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2 md:gap-3 truncate">
+                            <span class="text-slate-400 font-bold w-4 md:w-6 text-right">${index + 1}.</span>
+                            <img src="${player.avatar || `https://placehold.co/40x40/777/FFF?text=${player.name.charAt(0)}`}" class="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border-2 ${player.team === 'cewek' ? 'border-neon-cewek' : 'border-neon-cowok'}">
+                            <span class="text-white text-xs md:text-sm font-semibold truncate" title="${player.name}">${player.name}</span>
+                            ${index === 0 ? `<span class="text-neon-gold font-bold text-[10px] md:text-xs" data-i18n="MVP_BADGE">MVP</span>` : ''}
+                        </div>
+                        <div class="text-white text-sm md:text-lg font-bold">
+                            <span class="text-neon-gold">${player.correct}</span>
+                            <span class="text-slate-400 text-[10px] md:text-xs ml-1" data-i18n="SOLVED_ABBR">SOLVED</span>
+                        </div>
+                    `;
+                    els.topPlayersList.appendChild(row);
+                });
+            } else {
+                els.topPlayersList.innerHTML = `<div class="text-slate-500 text-center">${t('NO_PLAYERS')}</div>`;
+            }
+            // --- END NEW SECTION ---
+
+            let matchCount = 15; els.matchCountdown.textContent = matchCount;
+            const mt = setInterval(() => { matchCount--; els.matchCountdown.textContent = matchCount; if (matchCount <= 0) { clearInterval(mt); resetMatch(); } }, 1000);
+        }
+        
+        // --- KBBI MODAL (Now just opens new tab) ---
+        function openKBBILink() {
+            if (!state.currentKBBILink) return;
+            // --- MODIFIED: Use a named window ('kbbi_window') to reuse the same external tab ---
+            window.open(state.currentKBBILink, 'kbbi_window');
+        }
+        function closeKBBILink() {
+            // No longer needed
         }
 
-        function handleChat(data) {
-            const comment = (data.comment || "").trim().toUpperCase();
-            if (!comment || comment.length !== 5 || !/^[A-Z]+$/.test(comment)) return;
-            processGuess(assignTeam(data.uniqueId, data.nickname || data.uniqueId), comment, data.nickname || data.uniqueId);
-        }
+        // --- TIKFINITY ---
+        let ws; // Define ws in the global scope
 
-        function manualSubmit(team) {
-            const val = document.getElementById('manual-guess').value.trim().toUpperCase();
-            if (val.length === 5) {
-                processGuess(team, val, "ADMIN");
-                document.getElementById('manual-guess').value = "";
+        // --- NEW FUNCTION: To handle team joining ---
+        function joinTeam(userId, nickname, avatar, team) {
+            const currentUser = state.users[userId];
+            
+            // Check if user is already on this team
+            if (currentUser && currentUser.team === team) {
+                console.log(`${nickname} is already on team ${team}.`);
+                return; // No change needed, don't spam toasts
+            }
+
+            // If user exists, update their details (name/avatar might change) and team
+            if (currentUser) {
+                currentUser.team = team;
+                currentUser.name = nickname; 
+                currentUser.avatar = avatar; 
+            } else {
+                // New user
+                state.users[userId] = { team, name: nickname, avatar: avatar };
+            }
+
+            updateRecruitCounts();
+            
+            // Show welcome toast
+            const teamNameHtml = team === 'cewek' ? `<span class='text-neon-cewek font-bold'>${SETTINGS.TEAM_NAME_RED_PLAIN}</span>` : `<span class='text-neon-cowok font-bold'>${SETTINGS.TEAM_NAME_BLUE_PLAIN}</span>`;
+            showToast(t('TOAST_WELCOME', nickname, teamNameHtml), `welcome-${team}`);
+            
+            // Re-render player list if settings are open
+            if (!els.settingsOverlay.classList.contains('hidden')) {
+                renderPlayerManagement(els.playerSearchInput.value.toLowerCase().trim());
             }
         }
 
-        initBoards();
-        startNewRound();
-        connectTikFinity();
+        function connectTikFinity() {
+            if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+                 console.log("WebSocket connection already active.");
+                 return;
+            }
+            if (els.connectionStatus) els.connectionStatus.className = "w-3 h-3 bg-yellow-500 rounded-full mr-2 animate-ping";
+            try {
+                ws = new WebSocket('ws://localhost:21213/'); // Assign to global ws
+                ws.onopen = () => { if (els.connectionStatus) els.connectionStatus.className = "w-3 h-3 bg-green-500 rounded-full mr-2 shadow-[0_0_5px_#22c55e]"; console.log("Connected"); };
+                ws.onclose = () => { if (els.connectionStatus) els.connectionStatus.className = "w-3 h-3 bg-red-500 rounded-full mr-2"; ws = null; setTimeout(connectTikFinity, 3000); };
+                ws.onerror = () => { ws = null; };
+                ws.onmessage = (e) => { const pl = JSON.parse(e.data); if (pl.event === 'chat') handleChat(pl.data); };
+            } catch (e) { setTimeout(connectTikFinity, 3000); }
+        }
+        function handleChat(data) {
+            const rawComment = (data.comment || "").trim().toUpperCase();
+            const userId = data.uniqueId;
+            const nickname = data.nickname || userId;
+            const avatar = data.profilePictureUrl;
+
+            // 1. Check for Team Join Commands (English & Indonesian)
+            if (rawComment === '/GIRL' || rawComment === '/BOY' || rawComment === '/CEWEK' || rawComment === '/COWOK') {
+                const newTeam = (rawComment === '/GIRL' || rawComment === '/CEWEK') ? 'cewek' : 'cowok';
+                joinTeam(userId, nickname, avatar, newTeam);
+                return; // This was a command, not a guess
+            }
+
+            // 2. Process as a potential guess
+            // FIX: Remove spaces to bypass TikTok filter
+            const word = rawComment.replace(/\s/g, ""); 
+            
+            // 3. Check if it's a valid 5-letter word format
+            if (!word || word.length !== 5 || !/^[A-Z]+$/.test(word)) {
+                // Not a 5-letter word, not a join command. Ignore.
+                return;
+            }
+
+            // 4. Check if the user is registered
+            const userTeam = state.users[userId]?.team;
+            if (!userTeam) {
+                // User is not on a team but tried to guess.
+                showToast(t('TOAST_MUST_JOIN', nickname, word), 'error');
+                return; // Reject the guess
+            }
+
+            // 5. User is on a team, validate the word
+            if (!WORD_SET.has(word)) {
+                showToast(t('TOAST_UNKNOWN_WORD', nickname, word), 'error');
+                return;
+            }
+
+            // 6. All checks passed. Process the guess.
+            processGuess(userId, userTeam, word, nickname, avatar);
+        }
+
+        // --- ADMIN TEST FUNCTION ---
+        function manualSubmit(team) {
+            const input = document.getElementById('manual-guess');
+            const word = (input.value || "").trim().toUpperCase();
+            
+            if (!state.isRoundActive) {
+                showToast("Round is not active.", "error");
+                return;
+            }
+            if (word.length !== 5) {
+                showToast("Test word must be 5 letters.", "error");
+                return;
+            }
+            if (!WORD_SET.has(word)) {
+                showToast(t('TOAST_UNKNOWN_WORD', 'ADMIN', word), 'error'); 
+                return;
+            }
+
+            // Use a placeholder avatar for admin
+            const adminAvatar = `https://placehold.co/40x40/7f1d1d/FFF?text=A`;
+            processGuess('admin', team, word, 'ADMIN', adminAvatar);
+            
+            input.value = ""; // Clear input after submit
+        }
+        
+        async function initializeApp() { // Make async
+             els = {
+                boardCewek: document.getElementById('board-cewek'), boardCowok: document.getElementById('board-cowok'),
+                scoreCewek: document.getElementById('score-cewek'), scoreCowok: document.getElementById('score-cowok'),
+                currentRound: document.getElementById('current-round'), maxRoundsDisplay: document.getElementById('max-rounds-display'),
+                lastUserCewek: document.getElementById('last-user-cewek'), lastUserCowok: document.getElementById('last-user-cowok'),
+                roundStatusText: document.getElementById('round-status-text'), modeIndicator: document.getElementById('mode-indicator'),
+                roundOverlay: document.getElementById('round-overlay'), roundWinnerText: document.getElementById('round-winner-text'),
+                solvedByContainer: document.getElementById('solved-by-container'), winnerAvatar: document.getElementById('winner-avatar'),
+                winnerName: document.getElementById('winner-name'), revealedWord: document.getElementById('revealed-word'),
+                revealedWordTranslation: document.getElementById('revealed-word-translation'),
+                roundStatRed: document.getElementById('round-stat-red'), roundStatBlue: document.getElementById('round-stat-blue'),
+                countdown: document.getElementById('countdown'), playerCount: document.getElementById('player-count'),
+                barCewek: document.getElementById('bar-cewek'), barCowok: document.getElementById('bar-cowok'),
+                battleBarIcon: document.getElementById('battle-bar-icon'), // New
+                mvpOverlay: document.getElementById('mvp-overlay'), matchResultBanner: document.getElementById('match-result-banner'),
+                matchWinnerText: document.getElementById('match-winner-text'), mvpImage: document.getElementById('mvp-image'),
+                mvpName: document.getElementById('mvp-name'), mvpKills: document.getElementById('mvp-kills'),
+                mvpAssists: document.getElementById('mvp-assists'), mvpTeamBadge: document.getElementById('mvp-team-badge'),
+                matchCountdown: document.getElementById('match-countdown'), toastContainer: document.getElementById('toast-container'),
+                settingsOverlay: document.getElementById('settings-overlay'), modeDescription: document.getElementById('mode-description'),
+                playerList: document.getElementById('player-list'),
+                connectionStatus: document.getElementById('connection-status'),
+                kbbiLinkBtn: document.getElementById('kbbi-link-btn'),
+                nextRoundBtn: document.getElementById('next-round-btn'),
+                teamNameCewekInput: document.getElementById('setting-team-name-cewek'),
+                teamNameCowokInput: document.getElementById('setting-team-name-cowok'),
+                playerSearchInput: document.getElementById('player-search-input'), // New
+                topPlayersList: document.getElementById('top-players-list'), // New
+                // NEW Rally Refs
+                roundDisplayContainer: document.getElementById('round-display-container'),
+                roundLabel: document.getElementById('round-label'),
+                maxRoundsSeparator: document.getElementById('max-rounds-separator')
+            };
+
+            // Start automatically
+            await initGame(); // Await initGame to ensure WORD_LIST is loaded
+            // connectTikFinity(); // <-- TAMBAHKAN BARIS INI untuk memulai koneksi
+            // --- FIX: Automatically connect ---
+            connectTikFinity();
+        }
+
+        // Wait for DOM to load before initializing
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // --- NEW HELPER FUNCTION: Fetch with Exponential Backoff ---
+        /**
+         * Fetches a resource with exponential backoff for retries.
+         * @param {string} url - The URL to fetch.
+         * @param {object} options - The fetch options.
+         * @param {number} [retries=3] - The number of retries.
+         * @param {number} [delay=1000] - The initial delay in ms.
+         * @returns {Promise<Response>} - The fetch response.
+         */
+        async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
+            try {
+                const response = await fetch(url, options);
+                
+                // Don't retry on client errors (4xx)
+                if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                    console.error("Client error:", response.status, await response.text());
+                    return response; // Return the error response
+                }
+
+                // Retry on server errors (5xx) or rate limiting (429)
+                if ((response.status >= 500 || response.status === 429) && retries > 0) {
+                    // Do not log retry attempts to the console as per instructions
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                }
+
+                return response; // Return the response (ok or not)
+            } catch (error) {
+                // Handle network errors
+                if (retries > 0) {
+                    // Do not log retry attempts to the console
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                }
+                console.error("Fetch error after all retries:", error);
+                throw error; // Throw error after all retries fail
+            }
+        }
     </script>
 </body>
 </html>
